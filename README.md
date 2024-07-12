@@ -1,0 +1,74 @@
+# generic
+
+![Version: 0.0.1](https://img.shields.io/badge/Version-0.0.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.1.0](https://img.shields.io/badge/AppVersion-v1.1.0-informational?style=flat-square)
+
+## Values
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| affinity | object | `{}` |  |
+| args | list | `[]` | args for the pod's primary container. Default is the container's default "command" |
+| autoscaling.enabled | bool | `false` |  |
+| autoscaling.maxReplicas | int | `100` |  |
+| autoscaling.minReplicas | int | `1` |  |
+| autoscaling.targetCPUUtilizationPercentage | int | `80` |  |
+| command | list | `[]` | command for the pod's primary container. Default is the container's default entrypoint |
+| extraObjects | list | `[]` | Extra kubernetes objects to deploy (value evaluted as a template) |
+| fullnameOverride | string | `""` |  |
+| image.pullPolicy | string | `"IfNotPresent"` |  |
+| image.repository | string | `"nginx"` |  |
+| image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion. |
+| imagePullSecrets | list | `[]` |  |
+| includeMountLabel | bool | `true` | whether to include the checksum/config and checksum/secret mount labels that automatically force pod rollover on config change |
+| ingress.annotations | object | `{}` |  |
+| ingress.className | string | `""` |  |
+| ingress.enabled | bool | `false` |  |
+| ingress.hosts[0].host | string | `"chart-example.local"` |  |
+| ingress.hosts[0].paths[0].path | string | `"/"` |  |
+| ingress.hosts[0].paths[0].pathType | string | `"ImplementationSpecific"` |  |
+| ingress.tls | list | `[]` |  |
+| livenessProbe | object | `{}` | customize the primary container's livenessProbe. Default none |
+| mountConfig | list | `[]` | an array of name, mountPath, and content keys that will be used to create configMap entries and mount them as files into the pod. Strings evaluated as a template |
+| mountConfigMode | int | `420` | The file mode to use for mounting the mountConfig |
+| mountSecret | list | `[]` | an array of name, mountPath, and content keys that will be used to create configMap entries and mount them into the pod. Strings evaluated as a template |
+| mountSecretMode | int | `416` | The file mode to use for mounting the secretConfig |
+| nameOverride | string | `""` |  |
+| nodeSelector | object | `{}` |  |
+| pod.annotations | object | `{}` | Additional annotations to add to the pods |
+| pod.env | list | `[]` |  |
+| pod.initContainers | list | `[]` |  |
+| pod.labels | object | `{}` | Additional labels to add to the pods |
+| pod.otherContainers | list | `[]` |  |
+| pod.otherPorts | list | `[]` |  |
+| pod.port | int | `80` |  |
+| pod.securityContext | object | `{}` |  |
+| pod.volumeMounts | list | `[]` |  |
+| pod.volumes | list | `[]` |  |
+| rbac.clusterRole.name | string | `""` | The name for the ClusterRole. If empty, the "chart fullname" is used. |
+| rbac.clusterRole.rules | list | `[]` | Rules used as-is in the creation of a ClusterRole |
+| rbac.role.name | string | `""` | The name for the created role(s). If empty, the "chart fullname" is used. |
+| rbac.role.rules | list | `[]` | Rule(s) used as-is in the creation of Role(s) |
+| rbac.role.targetNamespaces | list | `[]` | The namespaces to create roles in. If empty, the Release.Namespace will be used by default. |
+| readinessProbe | object | `{"httpGet":{"path":"/","port":"http"}}` | customize the primary container's readinessProbe. Default is httpGet on the default `http` port |
+| replicaCount | int | `1` |  |
+| resources | object | `{}` |  |
+| secretEnv | list | `[]` | an array of name, value keys that will be used to create secret entries and attach as environment variables. Values evaluated as a template |
+| securityContext | object | `{}` |  |
+| service.otherPorts | list | `[]` |  |
+| service.port | int | `80` |  |
+| service.portName | string | `"http"` | The port.name for the default port. Also used as the container port.name as well. |
+| service.type | string | `"ClusterIP"` |  |
+| serviceAccount.annotations | object | `{}` | Annotations to add to the service account |
+| serviceAccount.create | bool | `true` | Specifies whether a service account should be created |
+| serviceAccount.name | string | `""` | If not set and create is true, a name is generated using the fullname template |
+| startupProbe | object | `{}` | customize the primary container's startupProbe. Default none |
+| storage.accessModes[0] | string | `"ReadWriteOnce"` |  |
+| storage.create | bool | `false` |  |
+| storage.mountPath | string | `"/mnt/storage"` |  |
+| storage.name | string | `""` |  |
+| storage.requests.storage | string | `"6Gi"` |  |
+| storage.storageClassName | string | `""` |  |
+| tolerations | list | `[]` |  |
+
+----------------------------------------------
+Autogenerated from chart metadata using [helm-docs v1.14.2](https://github.com/norwoodj/helm-docs/releases/v1.14.2)
