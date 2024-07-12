@@ -166,3 +166,7 @@ readinessProbe:
 livenessProbe: {}
 # -- customize the primary container's startupProbe. Default none
 startupProbe: {}
+
+statefulset:
+  enabled: false
+  serviceName: "generic"
