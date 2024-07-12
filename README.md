@@ -62,6 +62,8 @@
 | serviceAccount.create | bool | `true` | Specifies whether a service account should be created |
 | serviceAccount.name | string | `""` | If not set and create is true, a name is generated using the fullname template |
 | startupProbe | object | `{}` | customize the primary container's startupProbe. Default none |
+| statefulset.enabled | bool | `false` |  |
+| statefulset.serviceName | string | `"generic"` |  |
 | storage.accessModes[0] | string | `"ReadWriteOnce"` |  |
 | storage.create | bool | `false` |  |
 | storage.mountPath | string | `"/mnt/storage"` |  |
