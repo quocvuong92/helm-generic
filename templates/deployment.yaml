@@ -38,8 +38,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "generic.serviceAccountName" . }}
-      securityContext:
-        {{- toYaml .Values.pod.securityContext | nindent 8 }}
+      {{- with .Values.securityContext }}
+      securityContext: {{- toYaml . | nindent 12 }}
+      {{- end }}
       {{- with .Values.pod.initContainers }}
       initContainers:
         {{- toYaml . | nindent 8 }}
@@ -48,7 +49,7 @@ spec:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: {{- include "generic.image" . | nindent 12 }}
+          image: {{ tpl (include "generic.image" .) . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             {{- with .Values.pod.env }}
@@ -102,6 +103,9 @@ spec:
             {{- if .Values.storage.create }}
             - name: storage
               mountPath: {{ .Values.storage.mountPath }}
+              {{- if .Values.storage.subPath -}}
+              subPath: {{ .Values.storage.subPath }}
+              {{- end -}}
             {{- end -}}
             {{- with .Values.pod.volumeMounts -}}
               {{- . | toYaml | nindent 12 }}
@@ -144,7 +148,7 @@ spec:
         {{- if .Values.storage.create }}
         - name: storage
           persistentVolumeClaim:
-            claimName: {{ include "generic.fullname" . }}-storage
+            claimName: {{default (print (include "generic.fullname" .) "-storage" ) .Values.storage.name }}
         {{- end}}
         {{- with .Values.pod.volumes }}
           {{- . | toYaml | nindent 8 }}

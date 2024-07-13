@@ -127,8 +127,7 @@ Usage:
     {{- end }}
     {{- printf "- name: %s" $volumeName | nindent 0 }}
     {{- printf "mountPath: %s" (get $config "mountPath") | nindent 2 }}
-    {{- print "subPath: " | nindent 2 }}
-    {{- include "generic.config.key" (dict "index" $i "content" $config ) | nindent 4 }}
+    {{- printf "subPath: %s" (base (get $config "mountPath")) | nindent 2 }}
   {{- end }}
 {{- end }}
 
@@ -154,7 +153,7 @@ Usage:
       {{- fail "keys 'mountPath' and 'content' are required for mountConfig entries" }}
     {{- end }}
   {{- /* name */ -}}
-  {{- include "generic.config.key" (dict "index" $i "content" $config ) | nindent 0 }}: |
+  {{- include "generic.config.key" (dict "index" $i "content" $config ) | nindent 0 }}: |-
     {{- /* contents */ -}}
     {{- $content := get $config "content" }}
     {{- include "generic.tplvalues.render" (dict "value" $content "context" $global ) | nindent 2 }}
