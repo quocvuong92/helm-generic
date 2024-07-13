@@ -157,10 +157,7 @@ affinity: {}
 extraObjects: []
 
 # -- customize the primary container's readinessProbe. Default is httpGet on the default `http` port
-readinessProbe:
-  httpGet:
-    path: /
-    port: http
+readinessProbe: {}
 
 # -- customize the primary container's livenessProbe. Default none
 livenessProbe: {}
