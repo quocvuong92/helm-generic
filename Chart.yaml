@@ -3,8 +3,8 @@ appVersion: v1.1.0
 description: A generic Helm chart for Kubernetes
 maintainers:
 - email: quocvuongus@gmail.com
-  name: vuonghq
+  name: vuongq
   url: https://vuonghq.tech
 name: generic
 type: application
-version: 0.0.1
+version: 1.0.0
