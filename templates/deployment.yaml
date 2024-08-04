@@ -71,9 +71,9 @@ spec:
             []
             {{- end }}
           ports:
-            - name: {{ .Values.service.portName }}
-              containerPort: {{ .Values.pod.port }}
-              protocol: TCP
+            - name: {{ .Values.service.name }}
+              containerPort: {{ .Values.pod.containerPort }}
+              protocol: {{ .Values.pod.protocol | default "TCP" }}
             {{- if .Values.pod.otherPorts }}
             {{- toYaml .Values.pod.otherPorts | nindent 12 }}
             {{- end }}
