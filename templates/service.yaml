@@ -4,6 +4,8 @@ metadata:
   name: {{ include "generic.fullname" . }}
   labels:
     {{- include "generic.labels" . | nindent 4 }}
+  annotations:
+    {{- include "generic.annotations" . | nindent 4 }}
 spec:
   type: {{ .Values.service.type }}
   ports:

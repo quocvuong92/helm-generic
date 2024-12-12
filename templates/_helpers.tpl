@@ -44,6 +44,18 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{/*
+Common annotations
+*/}}
+{{- define "generic.annotations" -}}
+"helm.sh/chart": {{ include "generic.chart" . | quote }}
+"meta.helm.sh/release-name": {{ .Release.Name | quote }}
+"meta.helm.sh/release-namespace": {{ .Release.Namespace | quote }}
+{{- end
+}}
+
+
+
+{{/*
 Selector labels
 */}}
 {{- define "generic.selectorLabels" -}}
