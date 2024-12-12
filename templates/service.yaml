@@ -6,6 +6,9 @@ metadata:
     {{- include "generic.labels" . | nindent 4 }}
   annotations:
     {{- include "generic.annotations" . | nindent 4 }}
+    {{- if .Values.service.annotations }}
+    {{- toYaml .Values.service.annotations | nindent 4 }}
+    {{- end }}
 spec:
   type: {{ .Values.service.type }}
   ports:
