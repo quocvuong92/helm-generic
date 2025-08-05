@@ -11,6 +11,9 @@ metadata:
     {{- end }}
 spec:
   type: {{ .Values.service.type }}
+  {{- if eq .Values.service.clusterIP "None" }}
+  clusterIP: None
+  {{- end }}
   ports:
     - name: {{ .Values.service.name }}
       port: {{ .Values.service.port }}

@@ -108,6 +108,7 @@ securityContext: {}
 service:
   type: ClusterIP
   port: 80
+  targetPort: http
   # -- The port.name for the default port. Also used as the container port.name as well.
   name: http
   otherPorts: []
