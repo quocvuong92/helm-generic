@@ -1,0 +1,35 @@
+# Test StatefulSet workload type
+replicaCount: 3
+
+image:
+  repository: postgres
+  tag: "15"
+
+statefulset:
+  enabled: true
+  serviceName: "postgres"
+  podManagementPolicy: Parallel
+
+service:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      protocol: TCP
+
+pod:
+  ports:
+    - name: postgres
+      containerPort: 5432
+      protocol: TCP
+  env:
+    - name: POSTGRES_PASSWORD
+      value: "testpassword"
+
+storage:
+  create: true
+  size: 10Gi
+  mountPath: /var/lib/postgresql/data
+  retainOnDelete: true

@@ -171,3 +171,107 @@ Usage:
     {{- include "generic.tplvalues.render" (dict "value" $content "context" $global ) | nindent 2 }}
   {{- end }}
 {{- end }}
+
+{{- /*
+  Shared pod labels with checksum annotations for automatic rollover
+  Usage: {{ include "generic.podLabels" . | nindent 8 }}
+*/ -}}
+{{- define "generic.podLabels" -}}
+{{- include "generic.selectorLabels" . }}
+{{- with .Values.pod.labels }}
+{{ toYaml . }}
+{{- end }}
+{{- if .Values.includeMountLabel }}
+{{- if .Values.mountConfig }}
+checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum | trunc 63 }}
+{{- end }}
+{{- if .Values.mountSecret }}
+checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum | trunc 63 }}
+{{- end }}
+{{- end }}
+{{- end -}}
+
+{{- /*
+  Shared volume mounts for containers
+  Usage: {{ include "generic.volumeMounts" . | nindent 12 }}
+*/ -}}
+{{- define "generic.volumeMounts" -}}
+{{- if .Values.storage.create -}}
+- name: storage
+  mountPath: {{ .Values.storage.mountPath }}
+  {{- with .Values.storage.subPath }}
+  subPath: {{ . }}
+  {{- end }}
+{{- end -}}
+{{- with .Values.pod.volumeMounts }}
+{{ toYaml . }}
+{{- end -}}
+{{- with .Values.mountConfig }}
+{{ include "generic.config.volumeMount" (dict "value" . "volumeName" "config-volume") }}
+{{- end -}}
+{{- with .Values.mountSecret }}
+{{ include "generic.config.volumeMount" (dict "value" . "volumeName" "secret-volume") }}
+{{- end -}}
+{{- end -}}
+
+{{- /*
+  Shared volumes specification
+  Usage: {{ include "generic.volumes" . | nindent 8 }}
+*/ -}}
+{{- define "generic.volumes" -}}
+{{- if .Values.mountConfig -}}
+- name: config-volume
+  configMap:
+    name: {{ include "generic.fullname" . }}-config
+    defaultMode: {{ .Values.mountConfigMode }}
+{{- end -}}
+{{- if .Values.mountSecret -}}
+- name: secret-volume
+  secret:
+    secretName: {{ include "generic.fullname" . }}-secret-mount
+    defaultMode: {{ .Values.mountSecretMode }}
+{{- end -}}
+{{- if .Values.storage.create -}}
+- name: storage
+  persistentVolumeClaim:
+    claimName: {{ default (print (include "generic.fullname" .) "-storage") .Values.storage.name }}
+{{- end -}}
+{{- with .Values.pod.volumes }}
+{{ toYaml . }}
+{{- end -}}
+{{- end -}}
+
+{{- /*
+  Shared environment variables including secretEnv
+  Usage: {{ include "generic.env" . | nindent 12 }}
+*/ -}}
+{{- define "generic.env" -}}
+{{- $global := . -}}
+{{- with .Values.pod.env }}
+{{ toYaml . }}
+{{- end -}}
+{{- with .Values.secretEnv }}
+{{- range $secret := . }}
+{{- if or (not (hasKey $secret "name")) (not (hasKey $secret "value")) }}
+{{- fail "secretEnv entries require both a 'name' and a 'value' key" }}
+{{- end }}
+- name: {{ get $secret "name" }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "generic.fullname" $global }}-secret-env
+      key: {{ get $secret "name" }}
+{{- end }}
+{{- end -}}
+{{- end -}}
+
+{{- /*
+  Shared container ports
+  Usage: {{ include "generic.containerPorts" . | nindent 12 }}
+*/ -}}
+{{- define "generic.containerPorts" -}}
+{{- range .Values.pod.ports }}
+- name: {{ .name }}
+  containerPort: {{ .containerPort }}
+  protocol: {{ .protocol | default "TCP" }}
+{{- end -}}
+{{- end -}}

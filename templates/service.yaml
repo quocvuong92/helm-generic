@@ -6,8 +6,8 @@ metadata:
     {{- include "generic.labels" . | nindent 4 }}
   annotations:
     {{- include "generic.annotations" . | nindent 4 }}
-    {{- if .Values.service.annotations }}
-    {{- toYaml .Values.service.annotations | nindent 4 }}
+    {{- with .Values.service.annotations }}
+    {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
   type: {{ .Values.service.type }}
@@ -15,12 +15,11 @@ spec:
   clusterIP: None
   {{- end }}
   ports:
-    - name: {{ .Values.service.name }}
-      port: {{ .Values.service.port }}
-      targetPort: {{ .Values.service.targetPort }}
-      protocol: TCP
-    {{- if .Values.service.otherPorts }}
-    {{- toYaml .Values.service.otherPorts | nindent 4 }}
+    {{- range .Values.service.ports }}
+    - name: {{ .name }}
+      port: {{ .port }}
+      targetPort: {{ .targetPort | default .port }}
+      protocol: {{ .protocol | default "TCP" }}
     {{- end }}
   selector:
     {{- include "generic.selectorLabels" . | nindent 4 }}

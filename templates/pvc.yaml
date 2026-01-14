@@ -2,20 +2,29 @@
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: {{default (print (include "generic.fullname" .) "-storage" ) .Values.storage.name }}
+  name: {{ default (print (include "generic.fullname" .) "-storage") .Values.storage.name }}
+  labels:
+    {{- include "generic.labels" . | nindent 4 }}
   annotations:
+    {{- if .Values.storage.retainOnDelete }}
     "helm.sh/resource-policy": keep
+    {{- end }}
+    {{- with .Values.storage.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   accessModes:
-    {{- .Values.storage.accessModes | toYaml | nindent 4 }}
-  volumeMode: Filesystem
-  {{- if .Values.storage.storageClassName }}
-  storageClassName: {{ .Values.storage.storageClassName }}
+    {{- toYaml .Values.storage.accessModes | nindent 4 }}
+  volumeMode: {{ .Values.storage.volumeMode | default "Filesystem" }}
+  {{- with .Values.storage.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+  {{- with .Values.storage.selector }}
+  selector:
+    {{- toYaml . | nindent 4 }}
   {{- end }}
   resources:
-  {{- with .Values.storage.requests }}
     requests:
-      {{- . | toYaml | nindent 6 }}
-  {{- end }}
+      storage: {{ .Values.storage.size | default .Values.storage.requests.storage }}
 ---
 {{- end }}

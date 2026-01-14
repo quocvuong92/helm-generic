@@ -11,8 +11,10 @@ nameOverride: ""
 fullnameOverride: ""
 
 pod:
-  port: 80
-  otherPorts:
+  ports:
+    - name: http
+      containerPort: 80
+      protocol: TCP
     - name: rpc
       containerPort: 8090
       protocol: TCP
@@ -29,7 +31,7 @@ pod:
   initContainers:
     - name: test-init
       image: colearendt/netcat:bionic
-  otherContainers:
+  containers:
     - name: sidecar
       image: "nginx:latest"
 
@@ -55,13 +57,15 @@ securityContext: {}
 
 service:
   type: ClusterIP
-  port: 80
-  portName: testing
-  otherPorts:
-    - name: rpc
-      targetPort: rpc
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
       protocol: TCP
+    - name: rpc
       port: 8090
+      targetPort: 8090
+      protocol: TCP
 
 ingress:
   enabled: false

@@ -1,0 +1,52 @@
+# Test ingress with multiple backends pointing to different services
+replicaCount: 1
+
+image:
+  repository: nginx
+  tag: "1.25"
+
+service:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+
+pod:
+  ports:
+    - name: http
+      containerPort: 80
+      protocol: TCP
+  # Test envFrom - load env vars from existing secrets/configmaps
+  envFrom:
+    - secretRef:
+        name: app-secrets
+    - configMapRef:
+        name: app-config
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+  hosts:
+    - host: api.example.com
+      paths:
+        # Default backend - uses this chart's service
+        - path: /api
+          pathType: Prefix
+        # Custom backend - points to a different service
+        - path: /web
+          pathType: Prefix
+          serviceName: web-frontend
+          servicePort: 3000
+        # Another custom backend
+        - path: /admin
+          pathType: Prefix
+          serviceName: admin-service
+          servicePort: 8080
+  tls:
+    - secretName: api-tls
+      hosts:
+        - api.example.com
