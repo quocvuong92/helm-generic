@@ -132,14 +132,14 @@ Usage:
   Usage: {{ include "generic.config.volumeMount" (dict "value" .Values.configMount "volumeName" "config-volume" ) }}
  */ -}}
 {{- define "generic.config.volumeMount" }}
-  {{- $volumeName := default .volumeName "config-volume" }}
+  {{- $volumeName := .volumeName | default "config-volume" }}
   {{- range $i, $config := .value }}
     {{- if not (and (hasKey $config "mountPath") (hasKey $config "content")) }}
       {{- fail "keys 'mountPath' and 'content' are required for mountConfig entries" }}
     {{- end }}
-    {{- printf "- name: %s" $volumeName | nindent 0 }}
-    {{- printf "mountPath: %s" (get $config "mountPath") | nindent 2 }}
-    {{- printf "subPath: %s" (base (get $config "mountPath")) | nindent 2 }}
+- name: {{ $volumeName }}
+  mountPath: {{ get $config "mountPath" }}
+  subPath: {{ base (get $config "mountPath") }}
   {{- end }}
 {{- end }}
 
