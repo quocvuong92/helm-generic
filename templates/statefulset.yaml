@@ -6,6 +6,10 @@ metadata:
   name: {{ include "generic.fullname" . }}
   labels:
     {{- include "generic.labels" . | nindent 4 }}
+  {{- with .Values.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   serviceName: {{ .Values.statefulset.serviceName }}
   replicas: {{ .Values.replicaCount }}
@@ -37,8 +41,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "generic.serviceAccountName" . }}
-      securityContext:
-        {{- toYaml .Values.pod.securityContext | nindent 8 }}
+      {{- with .Values.securityContext }}
+      securityContext: {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- with .Values.pod.initContainers }}
       initContainers:
         {{- toYaml . | nindent 8 }}
@@ -47,8 +52,12 @@ spec:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: {{- include "generic.image" . | nindent 12 }}
+          image: {{ tpl (include "generic.image" .) . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.pod.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           env:
             {{- with .Values.pod.env }}
               {{- toYaml . | nindent 12 }}
@@ -69,11 +78,10 @@ spec:
             []
             {{- end }}
           ports:
-            - name: {{ .Values.service.portName }}
-              containerPort: {{ .Values.pod.port }}
-              protocol: TCP
-            {{- if .Values.pod.otherPorts }}
-            {{- toYaml .Values.pod.otherPorts | nindent 12 }}
+            {{- range .Values.pod.ports }}
+            - name: {{ .name }}
+              containerPort: {{ .containerPort }}
+              protocol: {{ .protocol | default "TCP" }}
             {{- end }}
           {{- with .Values.command }}
           command:
@@ -101,6 +109,9 @@ spec:
             {{- if .Values.storage.create }}
             - name: storage
               mountPath: {{ .Values.storage.mountPath }}
+              {{- with .Values.storage.subPath }}
+              subPath: {{ . }}
+              {{- end }}
             {{- end -}}
             {{- with .Values.pod.volumeMounts -}}
               {{- . | toYaml | nindent 12 }}
@@ -114,10 +125,8 @@ spec:
           {{- if not (or .Values.pod.volumeMounts .Values.storage.create .Values.mountConfig .Values.mountSecret) }}
             []
           {{- end }}
-        {{- if .Values.pod.otherContainers }}
-        {{- with .Values.pod.otherContainers }}
-          {{- toYaml . | nindent 8 }}
-        {{- end }}
+        {{- with .Values.pod.containers }}
+        {{- toYaml . | nindent 8 }}
         {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
@@ -143,7 +152,7 @@ spec:
         {{- if .Values.storage.create }}
         - name: storage
           persistentVolumeClaim:
-            claimName: {{ include "generic.fullname" . }}-storage
+            claimName: {{ default (print (include "generic.fullname" .) "-storage") .Values.storage.name }}
         {{- end}}
         {{- with .Values.pod.volumes }}
           {{- . | toYaml | nindent 8 }}

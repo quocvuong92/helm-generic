@@ -45,9 +45,18 @@ secretEnv: []
   #   value: some-value
 
 pod:
-  containerPort: 80
-  otherPorts: []
+  # -- Container ports configuration
+  ports:
+    - name: http
+      containerPort: 80
+      protocol: TCP
   env: []
+  # -- Load environment variables from existing secrets or configmaps
+  envFrom: []
+    # - secretRef:
+    #     name: my-existing-secret
+    # - configMapRef:
+    #     name: my-existing-configmap
   volumes: []
   volumeMounts: []
   # -- Additional annotations to add to the pods
@@ -57,7 +66,18 @@ pod:
   securityContext: {}
     # fsGroup: 2000
   initContainers: []
-  otherContainers: []
+  # -- Additional containers (sidecars) running alongside the main container
+  containers: []
+    # - name: redis
+    #   image: redis:7
+    #   ports:
+    #     - name: redis
+    #       containerPort: 6379
+    # - name: nginx
+    #   image: nginx:latest
+    #   ports:
+    #     - name: proxy
+    #       containerPort: 80
 
 # -- command for the pod's primary container. Default is the container's default entrypoint
 command: []
@@ -65,14 +85,27 @@ command: []
 args: []
 
 storage:
-  name: ''
+  name: ""
   create: false
+  # -- Retain PVC when helm release is deleted
+  retainOnDelete: true
+  # -- Storage size (preferred over requests.storage)
+  size: ""
   accessModes:
     - ReadWriteOnce
-  storageClassName: ''
+  storageClassName: ""
+  # -- Volume mode: Filesystem or Block
+  volumeMode: Filesystem
+  mountPath: /mnt/storage
+  # -- SubPath within the volume to mount
+  subPath: ""
+  # -- Additional annotations for PVC
+  annotations: {}
+  # -- Label selector for binding to existing PV
+  selector: {}
+  # Deprecated: use 'size' instead
   requests:
     storage: 6Gi
-  mountPath: /mnt/storage
 
 serviceAccount:
   # -- Specifies whether a service account should be created
@@ -107,10 +140,26 @@ securityContext: {}
 
 service:
   type: ClusterIP
-  port: 80
-  # -- The port.name for the default port. Also used as the container port.name as well.
-  name: http
-  otherPorts: []
+  # -- Service ports configuration
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+  # Example with multiple ports:
+  # ports:
+  #   - name: http
+  #     port: 80
+  #     targetPort: 80
+  #     protocol: TCP
+  #   - name: grpc
+  #     port: 9090
+  #     targetPort: 9090
+  #     protocol: TCP
+  #   - name: metrics
+  #     port: 9091
+  #     targetPort: 9091
+  #     protocol: TCP
 
 ingress:
   enabled: false
@@ -122,7 +171,26 @@ ingress:
     - host: chart-example.local
       paths:
         - path: /
-          pathType: ImplementationSpecific
+          pathType: Prefix
+          # -- Optional: specify a different service name (defaults to chart fullname)
+          # serviceName: my-other-service
+          # -- Optional: specify a different service port (defaults to service.port)
+          # servicePort: 8080
+  # Example with multiple backends:
+  # hosts:
+  #   - host: api.example.com
+  #     paths:
+  #       - path: /api
+  #         pathType: Prefix
+  #         # Uses default service (this chart's service)
+  #       - path: /web
+  #         pathType: Prefix
+  #         serviceName: web-frontend
+  #         servicePort: 3000
+  #       - path: /admin
+  #         pathType: Prefix
+  #         serviceName: admin-service
+  #         servicePort: 8080
   tls: []
   #  - secretName: chart-example-tls
   #    hosts:
@@ -146,6 +214,22 @@ autoscaling:
   maxReplicas: 100
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
+  # -- Custom metrics for HPA (evaluated as-is)
+  customMetrics: []
+  # -- HPA behavior configuration for scale up/down
+  behavior: {}
+    # scaleDown:
+    #   stabilizationWindowSeconds: 300
+    #   policies:
+    #     - type: Percent
+    #       value: 10
+    #       periodSeconds: 60
+    # scaleUp:
+    #   stabilizationWindowSeconds: 0
+    #   policies:
+    #     - type: Percent
+    #       value: 100
+    #       periodSeconds: 15
 
 nodeSelector: {}
 
@@ -167,3 +251,61 @@ startupProbe: {}
 statefulset:
   enabled: false
   serviceName: "generic"
+  # -- Pod management policy: OrderedReady or Parallel
+  podManagementPolicy: OrderedReady
+  # -- Update strategy for StatefulSet
+  updateStrategy:
+    type: RollingUpdate
+  # -- Volume claim templates for StatefulSet
+  volumeClaimTemplates: []
+
+# -- Pod Disruption Budget configuration
+podDisruptionBudget:
+  enabled: false
+  # -- Minimum number/percentage of pods that must remain available
+  minAvailable: 1
+  # -- Maximum number/percentage of pods that can be unavailable (use either minAvailable or maxUnavailable)
+  # maxUnavailable: 1
+  # -- Policy for evicting unhealthy pods: IfHealthyBudget or AlwaysAllow
+  # unhealthyPodEvictionPolicy: IfHealthyBudget
+
+# -- Network Policy configuration
+networkPolicy:
+  enabled: false
+  # -- Policy types to enforce
+  policyTypes:
+    - Ingress
+    - Egress
+  # -- Ingress rules (evaluated as-is)
+  ingress: []
+    # - from:
+    #     - namespaceSelector:
+    #         matchLabels:
+    #           name: ingress-nginx
+    #   ports:
+    #     - protocol: TCP
+    #       port: 80
+  # -- Egress rules (evaluated as-is)
+  egress: []
+    # - to:
+    #     - ipBlock:
+    #         cidr: 0.0.0.0/0
+    #   ports:
+    #     - protocol: TCP
+    #       port: 443
+
+# -- ServiceMonitor configuration for Prometheus Operator
+serviceMonitor:
+  enabled: false
+  # -- Additional labels for ServiceMonitor
+  labels: {}
+  # -- Annotations for ServiceMonitor
+  annotations: {}
+  # -- Scrape interval
+  interval: 30s
+  # -- Scrape timeout
+  scrapeTimeout: 10s
+  # -- Metrics path
+  path: /metrics
+  # -- Custom endpoints (overrides default configuration)
+  endpoints: []

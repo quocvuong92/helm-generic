@@ -1,3 +1,4 @@
+{{- if not .Values.statefulset.enabled }}
 ---
 {{- $global := $ }}
 apiVersion: apps/v1
@@ -56,6 +57,10 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: {{ tpl (include "generic.image" .) . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.pod.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           env:
             {{- with .Values.pod.env }}
               {{- toYaml . | nindent 12 }}
@@ -76,11 +81,10 @@ spec:
             []
             {{- end }}
           ports:
-            - name: {{ .Values.service.name }}
-              containerPort: {{ .Values.pod.containerPort }}
-              protocol: {{ .Values.pod.protocol | default "TCP" }}
-            {{- if .Values.pod.otherPorts }}
-            {{- toYaml .Values.pod.otherPorts | nindent 12 }}
+            {{- range .Values.pod.ports }}
+            - name: {{ .name }}
+              containerPort: {{ .containerPort }}
+              protocol: {{ .protocol | default "TCP" }}
             {{- end }}
           {{- with .Values.command }}
           command:
@@ -124,10 +128,8 @@ spec:
           {{- if not (or .Values.pod.volumeMounts .Values.storage.create .Values.mountConfig .Values.mountSecret) }}
             []
           {{- end }}
-        {{- if .Values.pod.otherContainers }}
-        {{- with .Values.pod.otherContainers }}
-          {{- toYaml . | nindent 8 }}
-        {{- end }}
+        {{- with .Values.pod.containers }}
+        {{- toYaml . | nindent 8 }}
         {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
@@ -162,3 +164,4 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+{{- end }}

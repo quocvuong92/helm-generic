@@ -1,21 +1,77 @@
-1. Get the application URL by running these commands:
+{{- $fullName := include "generic.fullname" . -}}
+{{- $svcPort := (index .Values.service.ports 0).port -}}
+
+=======================================================
+  {{ .Chart.Name }} has been deployed!
+=======================================================
+
 {{- if .Values.ingress.enabled }}
+
+Application URL(s):
 {{- range $host := .Values.ingress.hosts }}
-  {{- range $host.paths }}
+  {{- range .paths }}
   http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
   {{- end }}
 {{- end }}
+
 {{- else if contains "NodePort" .Values.service.type }}
-  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "generic.fullname" . }})
+
+Get the application URL by running:
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ $fullName }})
   export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
   echo http://$NODE_IP:$NODE_PORT
+
 {{- else if contains "LoadBalancer" .Values.service.type }}
-     NOTE: It may take a few minutes for the LoadBalancer IP to be available.
-           You can watch the status of by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "generic.fullname" . }}'
-  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "generic.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
-  echo http://$SERVICE_IP:{{ .Values.service.port }}
+
+Get the application URL by running:
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+  kubectl get --namespace {{ .Release.Namespace }} svc {{ $fullName }} -w
+
 {{- else if contains "ClusterIP" .Values.service.type }}
-  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "generic.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
-  echo "Visit http://127.0.0.1:8080 to use your application"
-  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:80
+
+Access the application by running:
+  kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ $fullName }} {{ $svcPort }}:{{ $svcPort }}
+  Then visit: http://127.0.0.1:{{ $svcPort }}
+
+{{- end }}
+
+{{- if .Values.serviceMonitor.enabled }}
+
+Prometheus ServiceMonitor:
+  Metrics will be scraped from port "{{ (index .Values.service.ports 0).name }}" at path "{{ .Values.serviceMonitor.path | default "/metrics" }}"
+{{- end }}
+
+{{- if .Values.autoscaling.enabled }}
+
+Autoscaling:
+  Min replicas: {{ .Values.autoscaling.minReplicas }}
+  Max replicas: {{ .Values.autoscaling.maxReplicas }}
+{{- end }}
+
+{{- if .Values.podDisruptionBudget.enabled }}
+
+Pod Disruption Budget:
+  {{- if .Values.podDisruptionBudget.minAvailable }}
+  Min available: {{ .Values.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if .Values.podDisruptionBudget.maxUnavailable }}
+  Max unavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+{{- end }}
+
+{{- if .Values.storage.create }}
+
+Persistent Storage:
+  PVC: {{ default (print $fullName "-storage") .Values.storage.name }}
+  Size: {{ .Values.storage.size | default .Values.storage.requests.storage }}
+  Mount: {{ .Values.storage.mountPath }}
+{{- end }}
+
+{{- if .Values.statefulset.enabled }}
+
+Workload Type: StatefulSet
+  Service Name: {{ .Values.statefulset.serviceName }}
+{{- else }}
+
+Workload Type: Deployment
 {{- end }}

@@ -1,10 +1,30 @@
 apiVersion: v2
-appVersion: v1.1.0
-description: A generic Helm chart for Kubernetes
-maintainers:
-- email: quocvuongus@gmail.com
-  name: vuongq
-  url: https://vuonghq.tech
 name: generic
+description: A flexible, generic Helm chart for deploying any containerized application to Kubernetes
 type: application
-version: 1.0.0
+version: 1.1.0
+appVersion: v1.1.0
+kubeVersion: ">=1.19.0-0"
+maintainers:
+  - name: vuongq
+    email: quocvuongus@gmail.com
+    url: https://vuonghq.tech
+keywords:
+  - generic
+  - deployment
+  - statefulset
+  - kubernetes
+annotations:
+  artifacthub.io/changes: |
+    - kind: changed
+      description: Updated HPA to autoscaling/v2 API
+    - kind: added
+      description: Added PodDisruptionBudget support
+    - kind: added
+      description: Added NetworkPolicy support
+    - kind: added
+      description: Added ServiceMonitor for Prometheus
+    - kind: added
+      description: Added shared helpers for DRY templates
+    - kind: fixed
+      description: Fixed StatefulSet/Deployment inconsistencies

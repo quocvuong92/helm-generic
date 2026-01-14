@@ -2,6 +2,196 @@
 
 {{ template "chart.versionBadge" . }}{{ template "chart.typeBadge" . }}{{ template "chart.appVersionBadge" . }}
 
+{{ template "chart.description" . }}
+
+## Features
+
+- **Deployment or StatefulSet** - Choose the workload type that fits your application
+- **Multi-port Services** - Configure multiple container and service ports
+- **Sidecar Containers** - Add additional containers to your pods
+- **Multi-backend Ingress** - Route different paths to different services
+- **Environment Variables** - Support for direct env vars, secrets, and envFrom
+- **Config/Secret Mounting** - Mount configuration files with automatic pod rollover
+- **HorizontalPodAutoscaler** - With custom metrics and scaling behavior
+- **PodDisruptionBudget** - Ensure high availability during disruptions
+- **NetworkPolicy** - Control pod network traffic
+- **ServiceMonitor** - Prometheus Operator integration
+- **RBAC** - Role and ClusterRole support with multi-namespace bindings
+
+## Requirements
+
+Kubernetes: `{{ template "chart.kubeVersion" . }}`
+
+## Installation
+
+```bash
+helm install my-release generic -f values.yaml
+```
+
+## Quick Start Examples
+
+### Basic Deployment
+
+```yaml
+replicaCount: 2
+
+image:
+  repository: nginx
+  tag: "1.25"
+
+pod:
+  ports:
+    - name: http
+      containerPort: 80
+
+service:
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+```
+
+### Multi-port Service
+
+```yaml
+pod:
+  ports:
+    - name: http
+      containerPort: 80
+    - name: grpc
+      containerPort: 9090
+
+service:
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+    - name: grpc
+      port: 9090
+      targetPort: 9090
+```
+
+### With Sidecar Containers
+
+```yaml
+pod:
+  ports:
+    - name: http
+      containerPort: 8080
+  containers:
+    - name: redis
+      image: redis:7
+      ports:
+        - name: redis
+          containerPort: 6379
+```
+
+### Multi-backend Ingress
+
+```yaml
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: api.example.com
+      paths:
+        - path: /api
+          pathType: Prefix
+        - path: /web
+          pathType: Prefix
+          serviceName: web-frontend
+          servicePort: 3000
+```
+
+### Environment from Existing Secrets
+
+```yaml
+pod:
+  envFrom:
+    - secretRef:
+        name: my-existing-secret
+    - configMapRef:
+        name: my-existing-configmap
+```
+
+### StatefulSet with Storage
+
+```yaml
+statefulset:
+  enabled: true
+  serviceName: my-app
+
+storage:
+  create: true
+  size: 10Gi
+  mountPath: /data
+```
+
+### Production Configuration
+
+```yaml
+replicaCount: 3
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+
+serviceMonitor:
+  enabled: true
+  path: /metrics
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+```
+
 {{ template "chart.valuesSection" . }}
+
+## Upgrading
+
+### From < 1.1.0
+
+Port configuration structure changed:
+
+**Before:**
+```yaml
+pod:
+  containerPort: 80
+  otherContainers: []
+service:
+  port: 80
+  name: http
+```
+
+**After:**
+```yaml
+pod:
+  ports:
+    - name: http
+      containerPort: 80
+  containers: []
+service:
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+```
+
+{{ template "chart.maintainersSection" . }}
 
 {{ template "helm-docs.versionFooter" . }}
