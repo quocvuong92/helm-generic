@@ -1,10 +1,12 @@
 {{- if .Values.podDisruptionBudget.enabled }}
+{{- include "generic.validatePDB" . }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: {{ include "generic.fullname" . }}
   labels:
     {{- include "generic.labels" . | nindent 4 }}
+  {{- include "generic.renderAnnotations" (dict "global" . "local" .Values.podDisruptionBudget.annotations) | nindent 2 }}
 spec:
   {{- with .Values.podDisruptionBudget.minAvailable }}
   minAvailable: {{ . }}

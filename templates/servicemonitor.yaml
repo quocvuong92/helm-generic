@@ -8,10 +8,7 @@ metadata:
     {{- with .Values.serviceMonitor.labels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
-  {{- with .Values.serviceMonitor.annotations }}
-  annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
+  {{- include "generic.renderAnnotations" (dict "global" . "local" .Values.serviceMonitor.annotations) | nindent 2 }}
 spec:
   selector:
     matchLabels:

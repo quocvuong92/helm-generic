@@ -1,4 +1,11 @@
 {{/* vim: set filetype=mustache: */}}
+
+{{/*
+==============================================================================
+MODULE 1: NAMING
+==============================================================================
+*/}}
+
 {{/*
 Expand the name of the chart.
 */}}
@@ -8,8 +15,7 @@ Expand the name of the chart.
 
 {{/*
 Create a default fully qualified app name.
-We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
-If release name contains chart name it will be used as a full name.
+Truncated at 63 chars (DNS naming spec limit).
 */}}
 {{- define "generic.fullname" -}}
 {{- if .Values.fullnameOverride }}
@@ -25,14 +31,85 @@ If release name contains chart name it will be used as a full name.
 {{- end }}
 
 {{/*
-Create chart name and version as used by the chart label.
+Create chart name and version for chart label.
 */}}
 {{- define "generic.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
-Common labels
+Create the name of the service account to use.
+*/}}
+{{- define "generic.serviceAccountName" -}}
+{{- if .Values.serviceAccount.create }}
+{{- default (include "generic.fullname" .) .Values.serviceAccount.name }}
+{{- else }}
+{{- default "default" .Values.serviceAccount.name }}
+{{- end }}
+{{- end }}
+
+{{/*
+==============================================================================
+MODULE 2: VALIDATION
+==============================================================================
+*/}}
+
+{{/*
+Validate workload type and return it.
+Fails if invalid type specified.
+*/}}
+{{- define "generic.workloadType" -}}
+{{- $validTypes := list "deployment" "statefulset" "daemonset" "cronjob" }}
+{{- $type := .Values.workload.type | default "deployment" }}
+{{- if not (has $type $validTypes) }}
+{{- fail (printf "Invalid workload.type '%s'. Must be one of: %s" $type (join ", " $validTypes)) }}
+{{- end }}
+{{- $type }}
+{{- end }}
+
+{{/*
+Check if current workload type matches the specified type.
+Usage: {{ include "generic.isWorkloadType" (dict "context" . "type" "deployment") }}
+*/}}
+{{- define "generic.isWorkloadType" -}}
+{{- $currentType := include "generic.workloadType" .context }}
+{{- if eq $currentType .type }}true{{- end }}
+{{- end }}
+
+{{/*
+Validate HPA configuration.
+HPA is only valid for deployment and statefulset.
+*/}}
+{{- define "generic.validateHPA" -}}
+{{- if .Values.autoscaling.enabled }}
+{{- $type := include "generic.workloadType" . }}
+{{- if or (eq $type "daemonset") (eq $type "cronjob") }}
+{{- fail (printf "autoscaling.enabled cannot be used with workload.type '%s'. HPA only supports deployment and statefulset." $type) }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Validate PDB configuration.
+PDB is not valid for cronjob.
+*/}}
+{{- define "generic.validatePDB" -}}
+{{- if .Values.podDisruptionBudget.enabled }}
+{{- $type := include "generic.workloadType" . }}
+{{- if eq $type "cronjob" }}
+{{- fail "podDisruptionBudget.enabled cannot be used with workload.type 'cronjob'." }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+==============================================================================
+MODULE 3: METADATA (LABELS & ANNOTATIONS)
+==============================================================================
+*/}}
+
+{{/*
+Standard labels for all resources.
 */}}
 {{- define "generic.labels" -}}
 helm.sh/chart: {{ include "generic.chart" . }}
@@ -44,19 +121,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{/*
-Common annotations
-*/}}
-{{- define "generic.annotations" -}}
-"helm.sh/chart": {{ include "generic.chart" . | quote }}
-"meta.helm.sh/release-name": {{ .Release.Name | quote }}
-"meta.helm.sh/release-namespace": {{ .Release.Namespace | quote }}
-{{- end
-}}
-
-
-
-{{/*
-Selector labels
+Selector labels (used in matchLabels).
 */}}
 {{- define "generic.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "generic.name" . }}
@@ -64,214 +129,379 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-Create the name of the service account to use
+Standard annotations for all resources.
+Returns empty string if no global annotations.
 */}}
-{{- define "generic.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "generic.fullname" .) .Values.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.serviceAccount.name }}
+{{- define "generic.annotations" -}}
+{{- with .Values.globalAnnotations -}}
+{{- toYaml . }}
+{{- end -}}
+{{- end }}
+
+{{/*
+Render annotations block only if there are annotations.
+Usage: {{ include "generic.renderAnnotations" (dict "global" . "local" .Values.service.annotations) }}
+*/}}
+{{- define "generic.renderAnnotations" -}}
+{{- $globalAnnotations := include "generic.annotations" .global -}}
+{{- if or $globalAnnotations .local }}
+annotations:
+  {{- with $globalAnnotations }}
+  {{- . | nindent 2 }}
+  {{- end }}
+  {{- with .local }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
 {{- end }}
 {{- end }}
 
-{{- /*
-Define the image. This is helpful in case the tag has a sha in it
+{{/*
+Pod labels including checksums for automatic restart on config change.
+*/}}
+{{- define "generic.podLabels" -}}
+{{ include "generic.selectorLabels" . }}
+{{- with .Values.pod.labels }}
+{{ toYaml . }}
+{{- end }}
+{{- if .Values.restartOnConfigChange }}
+{{- if .Values.configFiles }}
+checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum | trunc 63 }}
+{{- end }}
+{{- if or .Values.secretFiles .Values.secretEnv }}
+checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum | trunc 63 }}
+{{- end }}
+{{- end }}
+{{- end }}
 
-Should be passed values directly
- */ -}}
+{{/*
+==============================================================================
+MODULE 4: IMAGE
+==============================================================================
+*/}}
+
+{{/*
+Generate full image reference.
+Handles both tag and sha256 digest formats.
+*/}}
 {{- define "generic.image" -}}
 {{- $tag := .Values.image.tag | default .Chart.AppVersion }}
 {{- if hasPrefix "sha256:" $tag -}}
-"{{ .Values.image.repository }}@{{ $tag }}"
+{{ .Values.image.repository }}@{{ $tag }}
 {{- else -}}
-"{{ .Values.image.repository }}:{{ $tag }}"
+{{ .Values.image.repository }}:{{ $tag }}
 {{- end }}
 {{- end }}
 
-{{/* thanks to https://github.com/bitnami/charts/blob/master/bitnami/common/templates/_tplvalues.tpl */}}
 {{/*
-Renders a value that contains template.
-Usage:
-{{ include "generic.tplvalues.render" ( dict "value" .Values.path.to.the.Value "context" $) }}
+==============================================================================
+MODULE 5: TEMPLATE RENDERING
+==============================================================================
 */}}
-{{- define "generic.tplvalues.render" -}}
+
+{{/*
+Render a value that contains template.
+Usage: {{ include "generic.tplValue" (dict "value" .Values.path.to.value "context" $) }}
+*/}}
+{{- define "generic.tplValue" -}}
 {{- if typeIs "string" .value }}
 {{- tpl .value .context | trim }}
 {{- else }}
 {{- tpl (.value | toYaml) .context | trim }}
 {{- end }}
-{{- end -}}
-
-
-{{- /*
-  Determines the key given a "config" object and an "index"
-    Optional key "filePrefix" defaults to "config-file"
-    Optional key "fileExt" defaults to ".txt"
-  Usage:
-    {{ include "generic.config.key" (dict "index" 1 "content" (dict "name" "hi") }}
- */ -}}
-{{- define "generic.config.key" -}}
-  {{- $filePrefix := default .filePrefix "config-file" }}
-  {{- $fileExt := default .fileExt ".txt" }}
-  {{- if hasKey .content "name" }}
-    {{- print (get .content "name") }}
-  {{- else }}
-    {{- printf "%s-%d%s" $filePrefix .index $fileExt }}
-  {{- end}}
-{{- end -}}
-
-{{- /*
-  Given a:
-    - value: list of maps with mountPath and "content" keys
-    - volumeName: optional name of the volume. Defaults to "config-volume"
-  Generate:
-    - a list of "volumeMount:" configurations that:
-      - reference the named `volume`
-      - choose a `subPath` based on the naming convention (i.e. either the name in the "content" key or the index)
-      - choose a `mountPath` based on the "mountPath" key
-  Usage: {{ include "generic.config.volumeMount" (dict "value" .Values.configMount "volumeName" "config-volume" ) }}
- */ -}}
-{{- define "generic.config.volumeMount" }}
-  {{- $volumeName := .volumeName | default "config-volume" }}
-  {{- range $i, $config := .value }}
-    {{- if not (and (hasKey $config "mountPath") (hasKey $config "content")) }}
-      {{- fail "keys 'mountPath' and 'content' are required for mountConfig entries" }}
-    {{- end }}
-- name: {{ $volumeName }}
-  mountPath: {{ get $config "mountPath" }}
-  subPath: {{ base (get $config "mountPath") }}
-  {{- end }}
 {{- end }}
 
-{{- /*
-  Given a:
-    - value: a list of maps with "mountPath" and "content" keys (along with recommended "name" key)
-    - context: the context for templating to be evaluated within. Usually global
-  Generate a:
-    - ConfigMap "spec" / "data"
-    - map of entries
-    - evaluate each "content" key as a template
+{{/*
+==============================================================================
+MODULE 6: ENVIRONMENT VARIABLES
+==============================================================================
+*/}}
 
-  Usage: {{ include "generic.config.configmap" (dict "value" .Values.configMount "context" . )}}
-*/ -}}
-{{- define "generic.config.configmap" -}}
-  {{- if or (not (hasKey . "context")) (not (hasKey . "value")) }}
-    {{- fail "generic.config requires both a context and a value key" }}
-  {{- end }}
-  {{- $global := .context }}
-  {{- /* TODO: find a way to ensure names are unique...? */ -}}
-  {{- range $i, $config := .value }}
-    {{- if not (and (hasKey $config "mountPath") (hasKey $config "content")) }}
-      {{- fail "keys 'mountPath' and 'content' are required for mountConfig entries" }}
-    {{- end }}
-  {{- /* name */ -}}
-  {{- include "generic.config.key" (dict "index" $i "content" $config ) | nindent 0 }}: |-
-    {{- /* contents */ -}}
-    {{- $content := get $config "content" }}
-{{ include "generic.tplvalues.render" (dict "value" $content "context" $global ) | trim | indent 2 }}
-  {{- end }}
-{{- end }}
-
-{{- /*
-  Shared pod labels with checksum annotations for automatic rollover
-  Usage: {{ include "generic.podLabels" . | nindent 8 }}
-*/ -}}
-{{- define "generic.podLabels" -}}
-{{- include "generic.selectorLabels" . }}
-{{- with .Values.pod.labels }}
+{{/*
+Generate environment variables for main container.
+Combines pod.env and secretEnv references.
+*/}}
+{{- define "generic.env" -}}
+{{- $global := . }}
+{{- with .Values.env }}
 {{ toYaml . }}
 {{- end }}
-{{- if .Values.includeMountLabel }}
-{{- if .Values.mountConfig }}
-checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum | trunc 63 }}
+{{- range $secret := .Values.secretEnv }}
+{{- if not (and (hasKey $secret "name") (hasKey $secret "value")) }}
+{{- fail "secretEnv entries require both 'name' and 'value' keys" }}
 {{- end }}
-{{- if .Values.mountSecret }}
-checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum | trunc 63 }}
+- name: {{ $secret.name }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "generic.fullname" $global }}-secret-env
+      key: {{ $secret.name }}
 {{- end }}
 {{- end }}
-{{- end -}}
 
-{{- /*
-  Shared volume mounts for containers
-  Usage: {{ include "generic.volumeMounts" . | nindent 12 }}
-*/ -}}
+{{/*
+==============================================================================
+MODULE 7: CONTAINER PORTS
+==============================================================================
+*/}}
+
+{{/*
+Generate container ports.
+*/}}
+{{- define "generic.containerPorts" -}}
+{{- range .Values.ports }}
+- name: {{ .name }}
+  containerPort: {{ .containerPort }}
+  protocol: {{ .protocol | default "TCP" }}
+{{- end }}
+{{- end }}
+
+{{/*
+==============================================================================
+MODULE 8: VOLUMES & VOLUME MOUNTS
+==============================================================================
+*/}}
+
+{{/*
+Generate volume mounts for main container.
+*/}}
 {{- define "generic.volumeMounts" -}}
-{{- if .Values.storage.create -}}
+{{- if .Values.storage.enabled }}
 - name: storage
   mountPath: {{ .Values.storage.mountPath }}
   {{- with .Values.storage.subPath }}
   subPath: {{ . }}
   {{- end }}
-{{- end -}}
+{{- end }}
+{{- range .Values.configFiles }}
+{{- if not (and (hasKey . "mountPath") (hasKey . "content")) }}
+{{- fail "configFiles entries require 'mountPath' and 'content' keys" }}
+{{- end }}
+- name: config-volume
+  mountPath: {{ .mountPath }}
+  subPath: {{ base .mountPath }}
+{{- end }}
+{{- range .Values.secretFiles }}
+{{- if not (and (hasKey . "mountPath") (hasKey . "content")) }}
+{{- fail "secretFiles entries require 'mountPath' and 'content' keys" }}
+{{- end }}
+- name: secret-volume
+  mountPath: {{ .mountPath }}
+  subPath: {{ base .mountPath }}
+{{- end }}
 {{- with .Values.pod.volumeMounts }}
 {{ toYaml . }}
-{{- end -}}
-{{- with .Values.mountConfig }}
-{{ include "generic.config.volumeMount" (dict "value" . "volumeName" "config-volume") }}
-{{- end -}}
-{{- with .Values.mountSecret }}
-{{ include "generic.config.volumeMount" (dict "value" . "volumeName" "secret-volume") }}
-{{- end -}}
-{{- end -}}
+{{- end }}
+{{- end }}
 
-{{- /*
-  Shared volumes specification
-  Usage: {{ include "generic.volumes" . | nindent 8 }}
-*/ -}}
+{{/*
+Generate volumes specification.
+*/}}
 {{- define "generic.volumes" -}}
-{{- if .Values.mountConfig -}}
+{{- if .Values.configFiles }}
 - name: config-volume
   configMap:
     name: {{ include "generic.fullname" . }}-config
-    defaultMode: {{ .Values.mountConfigMode }}
-{{- end -}}
-{{- if .Values.mountSecret -}}
+    defaultMode: {{ .Values.configFilesMode }}
+{{- end }}
+{{- if .Values.secretFiles }}
 - name: secret-volume
   secret:
-    secretName: {{ include "generic.fullname" . }}-secret-mount
-    defaultMode: {{ .Values.mountSecretMode }}
-{{- end -}}
-{{- if .Values.storage.create -}}
+    secretName: {{ include "generic.fullname" . }}-secret
+    defaultMode: {{ .Values.secretFilesMode }}
+{{- end }}
+{{- if .Values.storage.enabled }}
 - name: storage
   persistentVolumeClaim:
-    claimName: {{ default (print (include "generic.fullname" .) "-storage") .Values.storage.name }}
-{{- end -}}
+    claimName: {{ default (printf "%s-storage" (include "generic.fullname" .)) .Values.storage.name }}
+{{- end }}
 {{- with .Values.pod.volumes }}
 {{ toYaml . }}
-{{- end -}}
-{{- end -}}
-
-{{- /*
-  Shared environment variables including secretEnv
-  Usage: {{ include "generic.env" . | nindent 12 }}
-*/ -}}
-{{- define "generic.env" -}}
-{{- $global := . -}}
-{{- with .Values.pod.env }}
-{{ toYaml . }}
-{{- end -}}
-{{- with .Values.secretEnv }}
-{{- range $secret := . }}
-{{- if or (not (hasKey $secret "name")) (not (hasKey $secret "value")) }}
-{{- fail "secretEnv entries require both a 'name' and a 'value' key" }}
 {{- end }}
-- name: {{ get $secret "name" }}
-  valueFrom:
-    secretKeyRef:
-      name: {{ include "generic.fullname" $global }}-secret-env
-      key: {{ get $secret "name" }}
 {{- end }}
-{{- end -}}
-{{- end -}}
 
-{{- /*
-  Shared container ports
-  Usage: {{ include "generic.containerPorts" . | nindent 12 }}
-*/ -}}
-{{- define "generic.containerPorts" -}}
-{{- range .Values.pod.ports }}
-- name: {{ .name }}
-  containerPort: {{ .containerPort }}
-  protocol: {{ .protocol | default "TCP" }}
+{{/*
+==============================================================================
+MODULE 9: CONFIG/SECRET DATA
+==============================================================================
+*/}}
+
+{{/*
+Generate ConfigMap data entries from configFiles.
+*/}}
+{{- define "generic.configData" -}}
+{{- $global := .context }}
+{{- range .files }}
+{{ base .mountPath }}: |
+{{- include "generic.tplValue" (dict "value" .content "context" $global) | nindent 2 }}
+{{- end }}
+{{- end }}
+
+{{/*
+Generate Secret data entries from secretFiles.
+*/}}
+{{- define "generic.secretData" -}}
+{{- $global := .context }}
+{{- range .files }}
+{{ base .mountPath }}: |
+{{- include "generic.tplValue" (dict "value" .content "context" $global) | nindent 2 }}
+{{- end }}
+{{- end }}
+
+{{/*
+==============================================================================
+MODULE 10: MAIN CONTAINER
+==============================================================================
+*/}}
+
+{{/*
+Generate the main container specification.
+*/}}
+{{- define "generic.mainContainer" -}}
+- name: {{ .Chart.Name }}
+  image: {{ include "generic.image" . }}
+  imagePullPolicy: {{ .Values.image.pullPolicy }}
+  {{- with .Values.command }}
+  command:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.args }}
+  args:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.securityContext }}
+  securityContext:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.envFrom }}
+  envFrom:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- $env := include "generic.env" . }}
+  {{- if $env }}
+  env:
+    {{- $env | nindent 4 }}
+  {{- end }}
+  {{- $ports := include "generic.containerPorts" . }}
+  {{- if $ports }}
+  ports:
+    {{- $ports | nindent 4 }}
+  {{- end }}
+  {{- with .Values.livenessProbe }}
+  livenessProbe:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.readinessProbe }}
+  readinessProbe:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.startupProbe }}
+  startupProbe:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.resources }}
+  resources:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- $volumeMounts := include "generic.volumeMounts" . }}
+  {{- if $volumeMounts }}
+  volumeMounts:
+    {{- $volumeMounts | nindent 4 }}
+  {{- end }}
+{{- end }}
+
+{{/*
+==============================================================================
+MODULE 11: POD SPEC
+==============================================================================
+*/}}
+
+{{/*
+Generate complete pod spec (used by all workload types).
+*/}}
+{{- define "generic.podSpec" -}}
+{{- with .Values.imagePullSecrets }}
+imagePullSecrets:
+  {{- toYaml . | nindent 2 }}
 {{- end -}}
-{{- end -}}
+serviceAccountName: {{ include "generic.serviceAccountName" . }}
+automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+{{- with .Values.pod.terminationGracePeriodSeconds }}
+terminationGracePeriodSeconds: {{ . }}
+{{- end }}
+{{- with .Values.pod.dnsPolicy }}
+dnsPolicy: {{ . }}
+{{- end }}
+{{- with .Values.pod.dnsConfig }}
+dnsConfig:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- with .Values.pod.securityContext }}
+securityContext:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- with .Values.pod.initContainers }}
+initContainers:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+containers:
+  {{- include "generic.mainContainer" . | nindent 2 }}
+  {{- with .Values.pod.sidecars }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+{{- with .Values.pod.nodeSelector }}
+nodeSelector:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- with .Values.pod.affinity }}
+affinity:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- with .Values.pod.topologySpreadConstraints }}
+topologySpreadConstraints:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- with .Values.pod.tolerations }}
+tolerations:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- $volumes := include "generic.volumes" . }}
+{{- if $volumes }}
+volumes:
+  {{- $volumes | nindent 2 }}
+{{- end }}
+{{- end }}
+
+{{/*
+==============================================================================
+MODULE 12: STATEFULSET HELPERS
+==============================================================================
+*/}}
+
+{{/*
+Generate StatefulSet serviceName (defaults to fullname).
+*/}}
+{{- define "generic.statefulsetServiceName" -}}
+{{- default (include "generic.fullname" .) .Values.workload.statefulset.serviceName }}
+{{- end }}
+
+{{/*
+Generate volumeClaimTemplates for StatefulSet.
+*/}}
+{{- define "generic.volumeClaimTemplates" -}}
+{{- range .Values.workload.statefulset.volumeClaimTemplates }}
+- metadata:
+    name: {{ .name }}
+    {{- with .annotations }}
+    annotations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  spec:
+    accessModes:
+      {{- toYaml (default (list "ReadWriteOnce") .accessModes) | nindent 6 }}
+    {{- with .storageClassName }}
+    storageClassName: {{ . }}
+    {{- end }}
+    resources:
+      requests:
+        storage: {{ .size | default "10Gi" }}
+{{- end }}
+{{- end }}

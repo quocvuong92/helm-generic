@@ -1,25 +1,26 @@
+{{- if .Values.service.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "generic.fullname" . }}
   labels:
     {{- include "generic.labels" . | nindent 4 }}
-  annotations:
-    {{- include "generic.annotations" . | nindent 4 }}
-    {{- with .Values.service.annotations }}
-    {{- toYaml . | nindent 4 }}
-    {{- end }}
+  {{- include "generic.renderAnnotations" (dict "global" . "local" .Values.service.annotations) | nindent 2 }}
 spec:
   type: {{ .Values.service.type }}
-  {{- if eq .Values.service.clusterIP "None" }}
-  clusterIP: None
-  {{- end }}
   ports:
     {{- range .Values.service.ports }}
     - name: {{ .name }}
       port: {{ .port }}
       targetPort: {{ .targetPort | default .port }}
       protocol: {{ .protocol | default "TCP" }}
+      {{- with .appProtocol }}
+      appProtocol: {{ . }}
+      {{- end }}
+      {{- with .nodePort }}
+      nodePort: {{ . }}
+      {{- end }}
     {{- end }}
   selector:
     {{- include "generic.selectorLabels" . | nindent 4 }}
+{{- end }}

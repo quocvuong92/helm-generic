@@ -1,0 +1,168 @@
+# Deployment with full features
+# Tests: Deployment, HPA, PDB, Ingress, ConfigFiles, SecretEnv
+
+workload:
+  type: deployment
+  replicas: 2
+  deployment:
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+
+image:
+  repository: myapp
+  tag: "1.0.0"
+  pullPolicy: Always
+
+ports:
+  - name: http
+    containerPort: 8080
+    protocol: TCP
+  - name: metrics
+    containerPort: 9090
+    protocol: TCP
+
+env:
+  - name: LOG_LEVEL
+    value: "info"
+  - name: POD_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.name
+
+secretEnv:
+  - name: DB_PASSWORD
+    value: "supersecret"
+  - name: API_KEY
+    value: "api-key-123"
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  readOnlyRootFilesystem: true
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+
+pod:
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+  labels:
+    team: platform
+  securityContext:
+    fsGroup: 2000
+  nodeSelector:
+    kubernetes.io/os: linux
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/name: generic
+
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789:role/my-role
+
+configFiles:
+  - name: app-config
+    mountPath: /etc/app/config.yaml
+    content: |
+      server:
+        port: 8080
+      logging:
+        level: info
+
+service:
+  enabled: true
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+  hosts:
+    - host: myapp.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: myapp-tls
+      hosts:
+        - myapp.example.com
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    cpu:
+      enabled: true
+      averageUtilization: 70
+    memory:
+      enabled: true
+      averageUtilization: 80
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443
+
+serviceMonitor:
+  enabled: true
+  labels:
+    release: prometheus
+  interval: 15s
+  path: /metrics

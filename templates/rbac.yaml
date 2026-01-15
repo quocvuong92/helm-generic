@@ -1,55 +1,75 @@
-{{- if .Values.rbac.role.rules }}
-{{- $roleName := .Values.rbac.role.name | default (include "generic.fullname" .) }}
-{{- $targetNamespaces := .Values.rbac.role.targetNamespaces }}
-{{- if eq (len $targetNamespaces) 0 }}
-  {{- $targetNamespaces = list $.Release.Namespace }}
-{{- end }}
-  {{- range $_, $ns := $targetNamespaces }}
+{{- $fullName := include "generic.fullname" . }}
+{{- $saName := include "generic.serviceAccountName" . }}
+{{- $releaseNamespace := .Release.Namespace }}
+{{- $global := . }}
+
+{{/*
+Namespace-scoped Roles and RoleBindings
+*/}}
+{{- range $role := .Values.rbac.roles }}
+{{- $roleName := $role.name | default $fullName }}
+{{- $namespaces := $role.namespaces | default (list $releaseNamespace) }}
+{{- range $ns := $namespaces }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: {{ $roleName }}
+  namespace: {{ $ns }}
+  labels:
+    {{- include "generic.labels" $global | nindent 4 }}
+  {{- include "generic.renderAnnotations" (dict "global" $global "local" nil) | nindent 2 }}
 rules:
-  {{- with $.Values.rbac.role.rules }}
-    {{- toYaml . | nindent 2}}
-  {{- end }}
+  {{- toYaml $role.rules | nindent 2 }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: {{ $roleName }}
+  namespace: {{ $ns }}
+  labels:
+    {{- include "generic.labels" $global | nindent 4 }}
+  {{- include "generic.renderAnnotations" (dict "global" $global "local" nil) | nindent 2 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: {{ $roleName }}
 subjects:
   - kind: ServiceAccount
-    name: {{ include "generic.serviceAccountName" $ }}
-  {{- end }}
+    name: {{ $saName }}
+    namespace: {{ $releaseNamespace }}
 {{- end }}
-{{- if .Values.rbac.clusterRole.rules }}
-  {{- $clusterRoleName := .Values.rbac.clusterRole.name | default (include "generic.fullname" . ) }}
+{{- end }}
+
+{{/*
+Cluster-scoped ClusterRole and ClusterRoleBinding
+*/}}
+{{- if .Values.rbac.clusterRole.enabled }}
+{{- $clusterRoleName := .Values.rbac.clusterRole.name | default $fullName }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: {{ $clusterRoleName }}
+  labels:
+    {{- include "generic.labels" . | nindent 4 }}
+  {{- include "generic.renderAnnotations" (dict "global" . "local" nil) | nindent 2 }}
 rules:
-  {{- with .Values.rbac.clusterRole.rules }}
-    {{- toYaml . | nindent 2}}
-  {{- end }}
+  {{- toYaml .Values.rbac.clusterRole.rules | nindent 2 }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: {{ $clusterRoleName }}
+  labels:
+    {{- include "generic.labels" . | nindent 4 }}
+  {{- include "generic.renderAnnotations" (dict "global" . "local" nil) | nindent 2 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: {{ $clusterRoleName }}
 subjects:
   - kind: ServiceAccount
-    name: {{ include "generic.serviceAccountName" . }}
----
+    name: {{ $saName }}
+    namespace: {{ $releaseNamespace }}
 {{- end }}

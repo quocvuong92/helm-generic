@@ -1,9 +1,11 @@
-{{- if .Values.mountConfig }}
----
+{{- if .Values.configFiles }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ include "generic.fullname" . }}-config
+  labels:
+    {{- include "generic.labels" . | nindent 4 }}
+  {{- include "generic.renderAnnotations" (dict "global" . "local" nil) | nindent 2 }}
 data:
-  {{- include "generic.config.configmap" (dict "context" $ "value" .Values.mountConfig ) | nindent 2 }}
+  {{- include "generic.configData" (dict "files" .Values.configFiles "context" $) | nindent 2 }}
 {{- end }}

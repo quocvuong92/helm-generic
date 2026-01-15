@@ -1,0 +1,101 @@
+# DaemonSet for node-level services
+# Tests: DaemonSet, tolerations, hostPath volumes
+
+workload:
+  type: daemonset
+  daemonset:
+    updateStrategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 1
+
+image:
+  repository: fluent/fluent-bit
+  tag: "2.1"
+
+ports:
+  - name: http
+    containerPort: 2020
+  - name: forward
+    containerPort: 24224
+
+env:
+  - name: NODE_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: spec.nodeName
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+securityContext:
+  runAsUser: 0
+  readOnlyRootFilesystem: true
+
+pod:
+  tolerations:
+    - key: node-role.kubernetes.io/master
+      effect: NoSchedule
+    - key: node-role.kubernetes.io/control-plane
+      effect: NoSchedule
+  volumes:
+    - name: varlog
+      hostPath:
+        path: /var/log
+    - name: containers
+      hostPath:
+        path: /var/lib/docker/containers
+  volumeMounts:
+    - name: varlog
+      mountPath: /var/log
+      readOnly: true
+    - name: containers
+      mountPath: /var/lib/docker/containers
+      readOnly: true
+
+configFiles:
+  - name: fluent-bit-config
+    mountPath: /fluent-bit/etc/fluent-bit.conf
+    content: |
+      [SERVICE]
+          Flush         1
+          Log_Level     info
+          Daemon        off
+          HTTP_Server   On
+          HTTP_Listen   0.0.0.0
+          HTTP_Port     2020
+
+      [INPUT]
+          Name              tail
+          Path              /var/log/containers/*.log
+          Parser            docker
+          Tag               kube.*
+          Refresh_Interval  5
+
+      [OUTPUT]
+          Name          stdout
+          Match         *
+
+service:
+  enabled: true
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 2020
+      targetPort: 2020
+
+serviceAccount:
+  create: true
+
+rbac:
+  clusterRole:
+    enabled: true
+    rules:
+      - apiGroups: [""]
+        resources: ["namespaces", "pods"]
+        verbs: ["get", "list", "watch"]

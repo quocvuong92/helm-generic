@@ -1,16 +1,13 @@
-{{- if .Values.ingress.enabled -}}
-{{- $fullName := include "generic.fullname" . -}}
-{{- $svcPort := (index .Values.service.ports 0).port -}}
+{{- if .Values.ingress.enabled }}
+{{- $fullName := include "generic.fullname" . }}
+{{- $svcPort := (index .Values.service.ports 0).port }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ $fullName }}
   labels:
     {{- include "generic.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
-  annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
+  {{- include "generic.renderAnnotations" (dict "global" . "local" .Values.ingress.annotations) | nindent 2 }}
 spec:
   {{- with .Values.ingress.className }}
   ingressClassName: {{ . }}
@@ -35,17 +32,9 @@ spec:
             pathType: {{ .pathType | default "Prefix" }}
             backend:
               service:
-                {{- if .serviceName }}
-                name: {{ .serviceName }}
-                {{- else }}
-                name: {{ $fullName }}
-                {{- end }}
+                name: {{ .serviceName | default $fullName }}
                 port:
-                  {{- if .servicePort }}
-                  number: {{ .servicePort }}
-                  {{- else }}
-                  number: {{ $svcPort }}
-                  {{- end }}
+                  number: {{ .servicePort | default $svcPort }}
           {{- end }}
     {{- end }}
 {{- end }}

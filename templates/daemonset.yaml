@@ -1,20 +1,17 @@
-{{- if eq (include "generic.workloadType" .) "deployment" }}
+{{- if eq (include "generic.workloadType" .) "daemonset" }}
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
   name: {{ include "generic.fullname" . }}
   labels:
     {{- include "generic.labels" . | nindent 4 }}
   {{- include "generic.renderAnnotations" (dict "global" . "local" nil) | nindent 2 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.workload.replicas }}
-  {{- end }}
   selector:
     matchLabels:
       {{- include "generic.selectorLabels" . | nindent 6 }}
-  {{- with .Values.workload.deployment.strategy }}
-  strategy:
+  {{- with .Values.workload.daemonset.updateStrategy }}
+  updateStrategy:
     {{- toYaml . | nindent 4 }}
   {{- end }}
   template:

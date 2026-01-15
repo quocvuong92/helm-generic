@@ -1,21 +1,19 @@
-{{- if .Values.storage.create }}
-kind: PersistentVolumeClaim
+{{- if .Values.storage.enabled }}
 apiVersion: v1
+kind: PersistentVolumeClaim
 metadata:
-  name: {{ default (print (include "generic.fullname" .) "-storage") .Values.storage.name }}
+  name: {{ default (printf "%s-storage" (include "generic.fullname" .)) .Values.storage.name }}
   labels:
     {{- include "generic.labels" . | nindent 4 }}
-  annotations:
-    {{- if .Values.storage.retainOnDelete }}
-    "helm.sh/resource-policy": keep
-    {{- end }}
-    {{- with .Values.storage.annotations }}
-    {{- toYaml . | nindent 4 }}
-    {{- end }}
+  {{- $storageAnnotations := .Values.storage.annotations | default dict }}
+  {{- if .Values.storage.retainOnDelete }}
+  {{- $storageAnnotations = merge $storageAnnotations (dict "helm.sh/resource-policy" "keep") }}
+  {{- end }}
+  {{- include "generic.renderAnnotations" (dict "global" . "local" $storageAnnotations) | nindent 2 }}
 spec:
   accessModes:
     {{- toYaml .Values.storage.accessModes | nindent 4 }}
-  volumeMode: {{ .Values.storage.volumeMode | default "Filesystem" }}
+  volumeMode: {{ .Values.storage.volumeMode }}
   {{- with .Values.storage.storageClassName }}
   storageClassName: {{ . }}
   {{- end }}
@@ -25,6 +23,5 @@ spec:
   {{- end }}
   resources:
     requests:
-      storage: {{ .Values.storage.size | default .Values.storage.requests.storage }}
----
+      storage: {{ .Values.storage.size }}
 {{- end }}

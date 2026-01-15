@@ -1,35 +1,70 @@
-# Test StatefulSet workload type
-replicaCount: 3
+# StatefulSet with persistent storage and volume claim templates
+# Tests: StatefulSet, VolumeClaimTemplates, Headless Service
+
+workload:
+  type: statefulset
+  replicas: 3
+  statefulset:
+    serviceName: "" # Uses fullname
+    podManagementPolicy: Parallel
+    updateStrategy:
+      type: RollingUpdate
+    volumeClaimTemplates:
+      - name: data
+        accessModes:
+          - ReadWriteOnce
+        size: 50Gi
+        storageClassName: gp3
 
 image:
   repository: postgres
-  tag: "15"
+  tag: "15-alpine"
 
-statefulset:
-  enabled: true
-  serviceName: "postgres"
-  podManagementPolicy: Parallel
+ports:
+  - name: postgres
+    containerPort: 5432
+
+env:
+  - name: POSTGRES_DB
+    value: mydb
+  - name: PGDATA
+    value: /var/lib/postgresql/data/pgdata
+
+secretEnv:
+  - name: POSTGRES_PASSWORD
+    value: "postgres-secret"
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+pod:
+  securityContext:
+    fsGroup: 999
+  volumeMounts:
+    - name: data
+      mountPath: /var/lib/postgresql/data
 
 service:
+  enabled: true
   type: ClusterIP
-  clusterIP: None
   ports:
     - name: postgres
       port: 5432
       targetPort: 5432
-      protocol: TCP
 
-pod:
-  ports:
-    - name: postgres
-      containerPort: 5432
-      protocol: TCP
-  env:
-    - name: POSTGRES_PASSWORD
-      value: "testpassword"
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
 
-storage:
-  create: true
-  size: 10Gi
-  mountPath: /var/lib/postgresql/data
-  retainOnDelete: true
+rbac:
+  roles:
+    - name: postgres-role
+      rules:
+        - apiGroups: [""]
+          resources: ["configmaps"]
+          verbs: ["get", "list", "watch"]

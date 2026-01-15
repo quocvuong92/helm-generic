@@ -1,0 +1,2 @@
+# Minimal values - uses all defaults
+# Tests: Deployment with nginx, ClusterIP service

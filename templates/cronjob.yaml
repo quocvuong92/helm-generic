@@ -1,0 +1,30 @@
+{{- if eq (include "generic.workloadType" .) "cronjob" }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "generic.fullname" . }}
+  labels:
+    {{- include "generic.labels" . | nindent 4 }}
+  {{- include "generic.renderAnnotations" (dict "global" . "local" nil) | nindent 2 }}
+spec:
+  schedule: {{ .Values.workload.cronjob.schedule | quote }}
+  {{- with .Values.workload.cronjob.timeZone }}
+  timeZone: {{ . | quote }}
+  {{- end }}
+  concurrencyPolicy: {{ .Values.workload.cronjob.concurrencyPolicy }}
+  successfulJobsHistoryLimit: {{ .Values.workload.cronjob.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.workload.cronjob.failedJobsHistoryLimit }}
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            {{- include "generic.podLabels" . | nindent 12 }}
+          {{- with .Values.pod.annotations }}
+          annotations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        spec:
+          restartPolicy: {{ .Values.workload.cronjob.restartPolicy }}
+          {{- include "generic.podSpec" . | nindent 10 }}
+{{- end }}

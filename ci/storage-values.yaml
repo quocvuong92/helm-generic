@@ -1,5 +1,62 @@
-storage:
-  name: my-storage
-  create: true
+# Deployment with persistent storage (PVC)
+# Tests: PVC creation, storage mounting
+
+workload:
+  type: deployment
+  replicas: 1
+
+image:
+  repository: redis
+  tag: "7-alpine"
+
+ports:
+  - name: redis
+    containerPort: 6379
+
+args:
+  - redis-server
+  - --appendonly
+  - "yes"
+  - --dir
+  - /data
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
   requests:
-    storage: 2Gi
+    cpu: 100m
+    memory: 128Mi
+
+storage:
+  enabled: true
+  size: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  mountPath: /data
+  retainOnDelete: true
+
+service:
+  enabled: true
+  type: ClusterIP
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+
+livenessProbe:
+  exec:
+    command:
+      - redis-cli
+      - ping
+  initialDelaySeconds: 10
+  periodSeconds: 5
+
+readinessProbe:
+  exec:
+    command:
+      - redis-cli
+      - ping
+  initialDelaySeconds: 5
+  periodSeconds: 3

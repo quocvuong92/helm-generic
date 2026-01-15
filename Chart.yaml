@@ -2,9 +2,9 @@ apiVersion: v2
 name: generic
 description: A flexible, generic Helm chart for deploying any containerized application to Kubernetes
 type: application
-version: 1.1.8
-appVersion: v1.1.8
-kubeVersion: ">=1.19.0-0"
+version: 2.0.0
+appVersion: "2.0.0"
+kubeVersion: ">=1.23.0-0"
 maintainers:
   - name: vuongq
     email: quocvuongus@gmail.com
@@ -13,18 +13,30 @@ keywords:
   - generic
   - deployment
   - statefulset
+  - daemonset
+  - cronjob
   - kubernetes
+home: https://github.com/quocvuong92/helm-generic
+sources:
+  - https://github.com/quocvuong92/helm-generic
 annotations:
   artifacthub.io/changes: |
     - kind: changed
-      description: Updated HPA to autoscaling/v2 API
+      description: Complete redesign with cleaner values structure
+    - kind: changed
+      description: Explicit workload.type selection (deployment/statefulset/daemonset/cronjob)
     - kind: added
-      description: Added PodDisruptionBudget support
+      description: Validation for workload type conflicts
     - kind: added
-      description: Added NetworkPolicy support
+      description: Consistent labels and annotations across all resources
+    - kind: changed
+      description: Renamed mountConfig/mountSecret to configFiles/secretFiles
+    - kind: changed
+      description: Moved pod.containers to pod.sidecars for clarity
+    - kind: changed
+      description: Restructured autoscaling.metrics for better organization
     - kind: added
-      description: Added ServiceMonitor for Prometheus
-    - kind: added
-      description: Added shared helpers for DRY templates
-    - kind: fixed
-      description: Fixed StatefulSet/Deployment inconsistencies
+      description: Support for multiple RBAC roles across namespaces
+    - kind: removed
+      description: Removed deprecated storage.requests.storage field
+  artifacthub.io/license: MIT

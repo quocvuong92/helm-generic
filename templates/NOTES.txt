@@ -1,77 +1,88 @@
-{{- $fullName := include "generic.fullname" . -}}
-{{- $svcPort := (index .Values.service.ports 0).port -}}
+{{- $fullName := include "generic.fullname" . }}
+{{- $workloadType := include "generic.workloadType" . }}
 
-=======================================================
-  {{ .Chart.Name }} has been deployed!
-=======================================================
+================================================================================
+  {{ .Chart.Name }} v{{ .Chart.Version }} deployed successfully!
+================================================================================
+
+Workload: {{ $workloadType | title }}
+Name:     {{ $fullName }}
+
+{{- if eq $workloadType "cronjob" }}
+
+Schedule: {{ .Values.workload.cronjob.schedule }}
+{{- if .Values.workload.cronjob.timeZone }}
+Timezone: {{ .Values.workload.cronjob.timeZone }}
+{{- end }}
+
+View jobs:
+  kubectl get jobs -l app.kubernetes.io/instance={{ .Release.Name }} -n {{ .Release.Namespace }}
+
+View logs:
+  kubectl logs -l app.kubernetes.io/instance={{ .Release.Name }} -n {{ .Release.Namespace }} --tail=100
+
+{{- else }}
+
+Replicas: {{ .Values.workload.replicas }}
+{{- if .Values.autoscaling.enabled }}
+  (HPA enabled: {{ .Values.autoscaling.minReplicas }}-{{ .Values.autoscaling.maxReplicas }})
+{{- end }}
 
 {{- if .Values.ingress.enabled }}
 
-Application URL(s):
-{{- range $host := .Values.ingress.hosts }}
-  {{- range .paths }}
-  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
-  {{- end }}
+Ingress URLs:
+{{- range .Values.ingress.hosts }}
+{{- range .paths }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $.host }}{{ .path }}
+{{- end }}
 {{- end }}
 
-{{- else if contains "NodePort" .Values.service.type }}
+{{- else if .Values.service.enabled }}
 
-Get the application URL by running:
-  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ $fullName }})
-  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
-  echo http://$NODE_IP:$NODE_PORT
+Access the application:
+{{- if eq .Values.service.type "NodePort" }}
+  export NODE_PORT=$(kubectl get svc {{ $fullName }} -n {{ .Release.Namespace }} -o jsonpath='{.spec.ports[0].nodePort}')
+  export NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[0].address}')
+  echo "http://$NODE_IP:$NODE_PORT"
 
-{{- else if contains "LoadBalancer" .Values.service.type }}
+{{- else if eq .Values.service.type "LoadBalancer" }}
+  kubectl get svc {{ $fullName }} -n {{ .Release.Namespace }} -w
+  (Wait for EXTERNAL-IP to be assigned)
 
-Get the application URL by running:
-  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
-  kubectl get --namespace {{ .Release.Namespace }} svc {{ $fullName }} -w
+{{- else }}
+  kubectl port-forward svc/{{ $fullName }} {{ (index .Values.service.ports 0).port }}:{{ (index .Values.service.ports 0).port }} -n {{ .Release.Namespace }}
+  Then visit: http://127.0.0.1:{{ (index .Values.service.ports 0).port }}
+{{- end }}
+{{- end }}
+{{- end }}
 
-{{- else if contains "ClusterIP" .Values.service.type }}
+{{- if .Values.storage.enabled }}
 
-Access the application by running:
-  kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ $fullName }} {{ $svcPort }}:{{ $svcPort }}
-  Then visit: http://127.0.0.1:{{ $svcPort }}
-
+Storage:
+  PVC:   {{ default (printf "%s-storage" $fullName) .Values.storage.name }}
+  Size:  {{ .Values.storage.size }}
+  Mount: {{ .Values.storage.mountPath }}
 {{- end }}
 
 {{- if .Values.serviceMonitor.enabled }}
 
-Prometheus ServiceMonitor:
-  Metrics will be scraped from port "{{ (index .Values.service.ports 0).name }}" at path "{{ .Values.serviceMonitor.path | default "/metrics" }}"
-{{- end }}
-
-{{- if .Values.autoscaling.enabled }}
-
-Autoscaling:
-  Min replicas: {{ .Values.autoscaling.minReplicas }}
-  Max replicas: {{ .Values.autoscaling.maxReplicas }}
+Prometheus Metrics:
+  Port: {{ (index .Values.service.ports 0).name }}
+  Path: {{ .Values.serviceMonitor.path }}
 {{- end }}
 
 {{- if .Values.podDisruptionBudget.enabled }}
 
 Pod Disruption Budget:
-  {{- if .Values.podDisruptionBudget.minAvailable }}
-  Min available: {{ .Values.podDisruptionBudget.minAvailable }}
-  {{- end }}
-  {{- if .Values.podDisruptionBudget.maxUnavailable }}
-  Max unavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
-  {{- end }}
+{{- if .Values.podDisruptionBudget.minAvailable }}
+  Min Available: {{ .Values.podDisruptionBudget.minAvailable }}
+{{- end }}
+{{- if .Values.podDisruptionBudget.maxUnavailable }}
+  Max Unavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
+{{- end }}
 {{- end }}
 
-{{- if .Values.storage.create }}
-
-Persistent Storage:
-  PVC: {{ default (print $fullName "-storage") .Values.storage.name }}
-  Size: {{ .Values.storage.size | default .Values.storage.requests.storage }}
-  Mount: {{ .Values.storage.mountPath }}
-{{- end }}
-
-{{- if .Values.statefulset.enabled }}
-
-Workload Type: StatefulSet
-  Service Name: {{ .Values.statefulset.serviceName }}
-{{- else }}
-
-Workload Type: Deployment
-{{- end }}
+Useful commands:
+  kubectl get pods -l app.kubernetes.io/instance={{ .Release.Name }} -n {{ .Release.Namespace }}
+  kubectl logs -l app.kubernetes.io/instance={{ .Release.Name }} -n {{ .Release.Namespace }} -f
+  kubectl describe {{ $workloadType }} {{ $fullName }} -n {{ .Release.Namespace }}

@@ -6,17 +6,18 @@
 
 ## Features
 
-- **Deployment or StatefulSet** - Choose the workload type that fits your application
+- **Multiple Workload Types** - Deployment, StatefulSet, DaemonSet, or CronJob with explicit `workload.type` selector
+- **Validation** - Fail-fast with clear error messages for invalid configurations
 - **Multi-port Services** - Configure multiple container and service ports
-- **Sidecar Containers** - Add additional containers to your pods
+- **Sidecar Containers** - Add init containers and sidecars to your pods
 - **Multi-backend Ingress** - Route different paths to different services
-- **Environment Variables** - Support for direct env vars, secrets, and envFrom
-- **Config/Secret Mounting** - Mount configuration files with automatic pod rollover
-- **HorizontalPodAutoscaler** - With custom metrics and scaling behavior
+- **Environment Variables** - Support for direct env vars, secretEnv, and envFrom
+- **Config/Secret Mounting** - Mount configuration files with automatic pod rollover on changes
+- **HorizontalPodAutoscaler** - With CPU, memory, and custom metrics support
 - **PodDisruptionBudget** - Ensure high availability during disruptions
 - **NetworkPolicy** - Control pod network traffic
 - **ServiceMonitor** - Prometheus Operator integration
-- **RBAC** - Role and ClusterRole support with multi-namespace bindings
+- **RBAC** - Multiple Roles and ClusterRole support with multi-namespace bindings
 
 ## Requirements
 
@@ -25,7 +26,14 @@ Kubernetes: `{{ template "chart.kubeVersion" . }}`
 ## Installation
 
 ```bash
+# Install with default values (Deployment with nginx)
+helm install my-release generic
+
+# Install with custom values
 helm install my-release generic -f values.yaml
+
+# Install in specific namespace
+helm install my-release generic -n production --create-namespace
 ```
 
 ## Quick Start Examples
@@ -33,16 +41,17 @@ helm install my-release generic -f values.yaml
 ### Basic Deployment
 
 ```yaml
-replicaCount: 2
+workload:
+  type: deployment
+  replicas: 2
 
 image:
   repository: nginx
   tag: "1.25"
 
-pod:
-  ports:
-    - name: http
-      containerPort: 80
+ports:
+  - name: http
+    containerPort: 80
 
 service:
   ports:
@@ -51,15 +60,72 @@ service:
       targetPort: 80
 ```
 
+### StatefulSet with Persistent Storage
+
+```yaml
+workload:
+  type: statefulset
+  replicas: 3
+  statefulset:
+    podManagementPolicy: Parallel
+    volumeClaimTemplates:
+      - name: data
+        size: 50Gi
+        storageClassName: gp3
+
+image:
+  repository: postgres
+  tag: "15"
+
+ports:
+  - name: postgres
+    containerPort: 5432
+```
+
+### DaemonSet for Node-level Services
+
+```yaml
+workload:
+  type: daemonset
+
+image:
+  repository: fluent/fluent-bit
+  tag: "2.1"
+
+pod:
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      effect: NoSchedule
+```
+
+### CronJob for Scheduled Tasks
+
+```yaml
+workload:
+  type: cronjob
+  cronjob:
+    schedule: "0 2 * * *"
+    concurrencyPolicy: Forbid
+
+image:
+  repository: curlimages/curl
+  tag: "8.1.0"
+
+command: ["/bin/sh", "-c"]
+args: ["curl -X POST https://api.example.com/backup"]
+
+service:
+  enabled: false
+```
+
 ### Multi-port Service
 
 ```yaml
-pod:
-  ports:
-    - name: http
-      containerPort: 80
-    - name: grpc
-      containerPort: 9090
+ports:
+  - name: http
+    containerPort: 80
+  - name: grpc
+    containerPort: 9090
 
 service:
   ports:
@@ -75,15 +141,17 @@ service:
 
 ```yaml
 pod:
-  ports:
-    - name: http
-      containerPort: 8080
-  containers:
-    - name: redis
-      image: redis:7
-      ports:
-        - name: redis
-          containerPort: 6379
+  initContainers:
+    - name: init-config
+      image: busybox
+      command: ["sh", "-c", "cp /config/* /app/"]
+
+  sidecars:
+    - name: log-shipper
+      image: fluent/fluent-bit:2.1
+      resources:
+        limits:
+          memory: 64Mi
 ```
 
 ### Multi-backend Ingress
@@ -92,55 +160,82 @@ pod:
 ingress:
   enabled: true
   className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
   hosts:
     - host: api.example.com
       paths:
         - path: /api
           pathType: Prefix
-        - path: /web
+        - path: /admin
           pathType: Prefix
-          serviceName: web-frontend
-          servicePort: 3000
+          serviceName: admin-service
+          servicePort: 8080
+  tls:
+    - secretName: api-tls
+      hosts:
+        - api.example.com
+```
+
+### Configuration Files
+
+```yaml
+configFiles:
+  - name: app-config
+    mountPath: /etc/app/config.yaml
+    content: |
+      database:
+        host: localhost
+        port: 5432
+
+secretFiles:
+  - name: credentials
+    mountPath: /etc/app/credentials.json
+    content: |
+      {"apiKey": "secret-value"}
+
+secretEnv:
+  - name: DB_PASSWORD
+    value: "super-secret"
 ```
 
 ### Environment from Existing Secrets
 
 ```yaml
-pod:
-  envFrom:
-    - secretRef:
-        name: my-existing-secret
-    - configMapRef:
-        name: my-existing-configmap
-```
-
-### StatefulSet with Storage
-
-```yaml
-statefulset:
-  enabled: true
-  serviceName: my-app
-
-storage:
-  create: true
-  size: 10Gi
-  mountPath: /data
+envFrom:
+  - secretRef:
+      name: my-existing-secret
+  - configMapRef:
+      name: my-existing-configmap
 ```
 
 ### Production Configuration
 
 ```yaml
-replicaCount: 3
+workload:
+  type: deployment
+  replicas: 3
 
-podDisruptionBudget:
-  enabled: true
-  minAvailable: 2
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
 
 autoscaling:
   enabled: true
   minReplicas: 3
   maxReplicas: 10
-  targetCPUUtilizationPercentage: 70
+  metrics:
+    cpu:
+      enabled: true
+      averageUtilization: 70
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
 
 networkPolicy:
   enabled: true
@@ -150,48 +245,51 @@ networkPolicy:
 serviceMonitor:
   enabled: true
   path: /metrics
+```
 
-resources:
-  requests:
-    cpu: 100m
-    memory: 128Mi
-  limits:
-    cpu: 500m
-    memory: 512Mi
+### RBAC Configuration
+
+```yaml
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789:role/my-role
+
+rbac:
+  roles:
+    - name: my-app-role
+      namespaces:
+        - default
+        - production
+      rules:
+        - apiGroups: [""]
+          resources: ["configmaps"]
+          verbs: ["get", "list", "watch"]
+
+  clusterRole:
+    enabled: true
+    rules:
+      - apiGroups: [""]
+        resources: ["nodes"]
+        verbs: ["get", "list"]
 ```
 
 {{ template "chart.valuesSection" . }}
 
-## Upgrading
+## Validation Rules
 
-### From < 1.1.0
+The chart validates configurations and fails with clear error messages:
 
-Port configuration structure changed:
-
-**Before:**
-```yaml
-pod:
-  containerPort: 80
-  otherContainers: []
-service:
-  port: 80
-  name: http
-```
-
-**After:**
-```yaml
-pod:
-  ports:
-    - name: http
-      containerPort: 80
-  containers: []
-service:
-  ports:
-    - name: http
-      port: 80
-      targetPort: 80
-```
+| Condition | Error |
+|-----------|-------|
+| Invalid `workload.type` | Must be: deployment, statefulset, daemonset, cronjob |
+| HPA with daemonset/cronjob | HPA only supports deployment and statefulset |
+| PDB with cronjob | PDB cannot be used with cronjob |
 
 {{ template "chart.maintainersSection" . }}
+
+## License
+
+MIT
 
 {{ template "helm-docs.versionFooter" . }}

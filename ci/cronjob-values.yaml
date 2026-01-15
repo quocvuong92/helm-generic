@@ -1,0 +1,51 @@
+# CronJob for scheduled tasks
+# Tests: CronJob, no service, job-specific settings
+
+workload:
+  type: cronjob
+  cronjob:
+    schedule: "0 2 * * *"
+    timeZone: "America/New_York"
+    concurrencyPolicy: Forbid
+    successfulJobsHistoryLimit: 3
+    failedJobsHistoryLimit: 1
+    restartPolicy: OnFailure
+
+image:
+  repository: curlimages/curl
+  tag: "8.1.0"
+
+command:
+  - /bin/sh
+  - -c
+
+args:
+  - |
+    echo "Starting backup at $(date)"
+    curl -X POST https://api.example.com/backup
+    echo "Backup completed"
+
+env:
+  - name: JOB_NAME
+    value: daily-backup
+
+secretEnv:
+  - name: API_TOKEN
+    value: "backup-token-123"
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+# Disable service for cronjobs
+service:
+  enabled: false
+
+serviceAccount:
+  create: true
+  annotations:
+    description: "Service account for backup cronjob"

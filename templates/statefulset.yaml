@@ -1,175 +1,36 @@
-{{- if .Values.statefulset.enabled }}
-{{- $global := $ }}
+{{- if eq (include "generic.workloadType" .) "statefulset" }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: {{ include "generic.fullname" . }}
   labels:
     {{- include "generic.labels" . | nindent 4 }}
-  {{- with .Values.annotations }}
-  annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
+  {{- include "generic.renderAnnotations" (dict "global" . "local" nil) | nindent 2 }}
 spec:
-  serviceName: {{ .Values.statefulset.serviceName }}
-  replicas: {{ .Values.replicaCount }}
+  serviceName: {{ include "generic.statefulsetServiceName" . }}
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.workload.replicas }}
+  {{- end }}
+  podManagementPolicy: {{ .Values.workload.statefulset.podManagementPolicy }}
   selector:
     matchLabels:
       {{- include "generic.selectorLabels" . | nindent 6 }}
+  {{- with .Values.workload.statefulset.updateStrategy }}
+  updateStrategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   template:
     metadata:
-    {{- with .Values.pod.annotations }}
+      labels:
+        {{- include "generic.podLabels" . | nindent 8 }}
+      {{- with .Values.pod.annotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
-    {{- end }}
-      labels:
-        {{- include "generic.selectorLabels" . | nindent 8 }}
-        {{- with .Values.pod.labels }}
-          {{- toYaml . | nindent 8}}
-        {{- end }}
-        {{- if .Values.includeMountLabel }}
-        {{- if .Values.mountConfig }}
-        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum | trunc 63 }}
-        {{- end }}
-        {{- if .Values.mountSecret }}
-        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum | trunc 63 }}
-        {{- end }}
-        {{- end }}
+      {{- end }}
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      serviceAccountName: {{ include "generic.serviceAccountName" . }}
-      {{- with .Values.securityContext }}
-      securityContext: {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.pod.initContainers }}
-      initContainers:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      containers:
-        - name: {{ .Chart.Name }}
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: {{ tpl (include "generic.image" .) . }}
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- with .Values.pod.envFrom }}
-          envFrom:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          env:
-            {{- with .Values.pod.env }}
-              {{- toYaml . | nindent 12 }}
-            {{- end }}
-            {{- with .Values.secretEnv }}
-              {{- range $secret := .}}
-                {{- if or (not (hasKey $secret "name" )) (not (hasKey $secret "value")) }}
-                  {{- fail "secretEnv entries require both a 'name' and a 'value' key" }}
-                {{- end }}
-            - name: {{ get $secret "name" }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "generic.fullname" $global }}-secret-env
-                  key: {{ get $secret "name" }}
-              {{- end }}
-            {{- end }}
-            {{- if and (not .Values.pod.env) (not .Values.secretEnv) }}
-            []
-            {{- end }}
-          ports:
-            {{- range .Values.pod.ports }}
-            - name: {{ .name }}
-              containerPort: {{ .containerPort }}
-              protocol: {{ .protocol | default "TCP" }}
-            {{- end }}
-          {{- with .Values.command }}
-          command:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.args }}
-          args:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.readinessProbe }}
-          readinessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.livenessProbe }}
-          livenessProbe:
-            {{- toYaml . | nindent 12}}
-          {{- end }}
-          {{- with .Values.startupProbe }}
-          startupProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-          volumeMounts:
-            {{- if .Values.storage.create }}
-            - name: storage
-              mountPath: {{ .Values.storage.mountPath }}
-              {{- with .Values.storage.subPath }}
-              subPath: {{ . }}
-              {{- end }}
-            {{- end -}}
-            {{- with .Values.pod.volumeMounts -}}
-              {{- . | toYaml | nindent 12 }}
-            {{- end -}}
-            {{- with .Values.mountConfig -}}
-              {{- include "generic.config.volumeMount" (dict "value" . "volumeName" "config-volume") | nindent 12 }}
-            {{- end }}
-            {{- with .Values.mountSecret }}
-              {{- include "generic.config.volumeMount" (dict "value" . "volumeName" "secret-volume") | nindent 12 }}
-            {{- end }}
-          {{- if not (or .Values.pod.volumeMounts .Values.storage.create .Values.mountConfig .Values.mountSecret) }}
-            []
-          {{- end }}
-        {{- with .Values.pod.containers }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      volumes:
-        {{- if .Values.mountConfig }}
-        - name: config-volume
-          configMap:
-            name: {{ include "generic.fullname" . }}-config
-            defaultMode: {{ .Values.mountConfigMode }}
-        {{- end }}
-        {{- if .Values.mountSecret }}
-        - name: secret-volume
-          secret:
-            secretName: {{ include "generic.fullname" . }}-secret-mount
-            defaultMode: {{ .Values.mountSecretMode }}
-        {{- end }}
-        {{- if .Values.storage.create }}
-        - name: storage
-          persistentVolumeClaim:
-            claimName: {{ default (print (include "generic.fullname" .) "-storage") .Values.storage.name }}
-        {{- end}}
-        {{- with .Values.pod.volumes }}
-          {{- . | toYaml | nindent 8 }}
-        {{- end }}
-      {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-  {{- with .Values.statefulset.volumeClaimTemplates }}
+      {{- include "generic.podSpec" . | nindent 6 }}
+  {{- if .Values.workload.statefulset.volumeClaimTemplates }}
   volumeClaimTemplates:
-    {{- range . }}
-    - metadata:
-        name: {{ .name }}
-        annotations:
-          {{- toYaml .annotations | nindent 10 }}
-      spec:
-        {{- toYaml .spec | nindent 8 }}
-    {{- end }}
+    {{- include "generic.volumeClaimTemplates" . | nindent 4 }}
   {{- end }}
 {{- end }}
