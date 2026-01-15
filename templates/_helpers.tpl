@@ -95,11 +95,11 @@ Usage:
 {{ include "generic.tplvalues.render" ( dict "value" .Values.path.to.the.Value "context" $) }}
 */}}
 {{- define "generic.tplvalues.render" -}}
-{{- if typeIs "string" .value -}}
-{{- tpl .value .context -}}
-{{- else -}}
-{{- tpl (.value | toYaml) .context -}}
-{{- end -}}
+{{- if typeIs "string" .value }}
+{{- tpl .value .context | trim }}
+{{- else }}
+{{- tpl (.value | toYaml) .context | trim }}
+{{- end }}
 {{- end -}}
 
 
