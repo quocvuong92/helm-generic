@@ -168,7 +168,7 @@ Usage:
   {{- include "generic.config.key" (dict "index" $i "content" $config ) | nindent 0 }}: |-
     {{- /* contents */ -}}
     {{- $content := get $config "content" }}
-    {{- include "generic.tplvalues.render" (dict "value" $content "context" $global ) | nindent 2 }}
+{{ include "generic.tplvalues.render" (dict "value" $content "context" $global ) | trim | indent 2 }}
   {{- end }}
 {{- end }}
 

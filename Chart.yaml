@@ -2,8 +2,8 @@ apiVersion: v2
 name: generic
 description: A flexible, generic Helm chart for deploying any containerized application to Kubernetes
 type: application
-version: 1.1.7
-appVersion: v1.1.7
+version: 1.1.8
+appVersion: v1.1.8
 kubeVersion: ">=1.19.0-0"
 maintainers:
   - name: vuongq
