@@ -10,7 +10,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: {{ $roleName }}
-  namespace: {{ $ns }}
 rules:
   {{- with $.Values.rbac.role.rules }}
     {{- toYaml . | nindent 2}}
@@ -20,7 +19,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: {{ $roleName }}
-  namespace: {{ $ns }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -28,7 +26,6 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: {{ include "generic.serviceAccountName" $ }}
-    namespace: {{ $.Release.Namespace }}
   {{- end }}
 {{- end }}
 {{- if .Values.rbac.clusterRole.rules }}
@@ -54,6 +51,5 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: {{ include "generic.serviceAccountName" . }}
-    namespace: {{ $.Release.Namespace }}
 ---
 {{- end }}
