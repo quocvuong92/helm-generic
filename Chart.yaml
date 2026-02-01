@@ -17,7 +17,7 @@ keywords:
   - cronjob
   - kubernetes
 home: https://github.com/quocvuong92/helm-generic
-icon: https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/kubernetes.svg
+icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/helm/icon/color/helm-icon-color.svg
 sources:
   - https://github.com/quocvuong92/helm-generic
 annotations:
