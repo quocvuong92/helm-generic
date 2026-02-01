@@ -1,6 +1,14 @@
+<p align="center">
+  <img src="https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/kubernetes.svg" alt="Kubernetes" width="80" height="80">
+</p>
+
 {{ template "chart.header" . }}
 
-{{ template "chart.versionBadge" . }}{{ template "chart.typeBadge" . }}{{ template "chart.appVersionBadge" . }}
+<p align="center">
+  <img src="https://img.shields.io/badge/Version-{{ .Version }}-informational?style=flat-square" alt="Version: {{ .Version }}">
+  <img src="https://img.shields.io/badge/Type-{{ .Type }}-informational?style=flat-square" alt="Type: {{ .Type }}">
+  <img src="https://img.shields.io/badge/AppVersion-{{ .AppVersion }}-informational?style=flat-square" alt="AppVersion: {{ .AppVersion }}">
+</p>
 
 {{ template "chart.description" . }}
 

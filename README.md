@@ -1,6 +1,14 @@
+<p align="center">
+  <img src="https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/kubernetes.svg" alt="Kubernetes" width="80" height="80">
+</p>
+
 # generic
 
-![Version: 2.0.0](https://img.shields.io/badge/Version-2.0.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2.0.0](https://img.shields.io/badge/AppVersion-2.0.0-informational?style=flat-square)
+<p align="center">
+  <img src="https://img.shields.io/badge/Version-2.0.0-informational?style=flat-square" alt="Version: 2.0.0">
+  <img src="https://img.shields.io/badge/Type-application-informational?style=flat-square" alt="Type: application">
+  <img src="https://img.shields.io/badge/AppVersion-2.0.0-informational?style=flat-square" alt="AppVersion: 2.0.0">
+</p>
 
 A flexible, generic Helm chart for deploying any containerized application to Kubernetes
 
