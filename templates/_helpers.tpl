@@ -421,7 +421,7 @@ Generate complete pod spec (used by all workload types).
 {{- with .Values.imagePullSecrets }}
 imagePullSecrets:
   {{- toYaml . | nindent 2 }}
-{{- end -}}
+{{- end }}
 serviceAccountName: {{ include "generic.serviceAccountName" . }}
 automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
 {{- with .Values.pod.terminationGracePeriodSeconds }}
