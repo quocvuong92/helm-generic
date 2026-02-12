@@ -103,6 +103,16 @@ PDB is not valid for cronjob.
 {{- end }}
 
 {{/*
+Validate storage configuration.
+storage.enabled creates a standalone PVC which conflicts with StatefulSet's volumeClaimTemplates.
+*/}}
+{{- define "generic.validateStorage" -}}
+{{- if and .Values.storage.enabled (eq (include "generic.workloadType" .) "statefulset") }}
+{{- fail "storage.enabled creates a standalone PVC which is not recommended with StatefulSets. Use workload.statefulset.volumeClaimTemplates instead for per-pod storage." }}
+{{- end }}
+{{- end }}
+
+{{/*
 ==============================================================================
 MODULE 3: METADATA (LABELS & ANNOTATIONS)
 ==============================================================================

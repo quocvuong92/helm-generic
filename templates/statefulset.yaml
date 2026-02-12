@@ -1,4 +1,5 @@
 {{- if eq (include "generic.workloadType" .) "statefulset" }}
+{{- include "generic.validateStorage" . }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
