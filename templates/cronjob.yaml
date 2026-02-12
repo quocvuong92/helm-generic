@@ -16,11 +16,11 @@ spec:
   failedJobsHistoryLimit: {{ .Values.workload.cronjob.failedJobsHistoryLimit }}
   jobTemplate:
     spec:
-      {{- with .Values.workload.cronjob.backoffLimit }}
-      backoffLimit: {{ . }}
+      {{- if ne (toString .Values.workload.cronjob.backoffLimit) "" }}
+      backoffLimit: {{ .Values.workload.cronjob.backoffLimit }}
       {{- end }}
-      {{- with .Values.workload.cronjob.activeDeadlineSeconds }}
-      activeDeadlineSeconds: {{ . }}
+      {{- if ne (toString .Values.workload.cronjob.activeDeadlineSeconds) "" }}
+      activeDeadlineSeconds: {{ .Values.workload.cronjob.activeDeadlineSeconds }}
       {{- end }}
       template:
         metadata:

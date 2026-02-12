@@ -20,8 +20,8 @@ spec:
   updateStrategy:
     {{- toYaml . | nindent 4 }}
   {{- end }}
-  {{- with .Values.workload.statefulset.minReadySeconds }}
-  minReadySeconds: {{ . }}
+  {{- if ne (toString .Values.workload.statefulset.minReadySeconds) "" }}
+  minReadySeconds: {{ .Values.workload.statefulset.minReadySeconds }}
   {{- end }}
   template:
     metadata:

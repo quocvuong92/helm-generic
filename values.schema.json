@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Generic Helm Chart Values",
-  "description": "Schema for generic Helm chart v2.0 values",
+  "description": "Schema for generic Helm chart v2.1 values",
   "type": "object",
   "properties": {
     "workload": {
@@ -413,7 +413,7 @@
         "annotations": { "type": "object" },
         "automountServiceAccountToken": {
           "type": "boolean",
-          "default": true
+          "default": false
         }
       }
     },
@@ -422,7 +422,7 @@
       "description": "Config files to mount (creates ConfigMap)",
       "items": {
         "type": "object",
-        "required": ["mountPath", "content"],
+        "required": ["name", "mountPath", "content"],
         "properties": {
           "name": { "type": "string" },
           "mountPath": { "type": "string" },
@@ -435,7 +435,7 @@
       "description": "Secret files to mount (creates Secret)",
       "items": {
         "type": "object",
-        "required": ["mountPath", "content"],
+        "required": ["name", "mountPath", "content"],
         "properties": {
           "name": { "type": "string" },
           "mountPath": { "type": "string" },
