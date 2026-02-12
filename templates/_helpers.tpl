@@ -99,6 +99,9 @@ PDB is not valid for cronjob.
 {{- if eq $type "cronjob" }}
 {{- fail "podDisruptionBudget.enabled cannot be used with workload.type 'cronjob'." }}
 {{- end }}
+{{- if and .Values.podDisruptionBudget.minAvailable .Values.podDisruptionBudget.maxUnavailable }}
+{{- fail "podDisruptionBudget: set only ONE of minAvailable or maxUnavailable, not both." }}
+{{- end }}
 {{- end }}
 {{- end }}
 
@@ -109,6 +112,15 @@ storage.enabled creates a standalone PVC which conflicts with StatefulSet's volu
 {{- define "generic.validateStorage" -}}
 {{- if and .Values.storage.enabled (eq (include "generic.workloadType" .) "statefulset") }}
 {{- fail "storage.enabled creates a standalone PVC which is not recommended with StatefulSets. Use workload.statefulset.volumeClaimTemplates instead for per-pod storage." }}
+{{- end }}
+{{- end }}
+
+{{/*
+Validate Ingress requires Service.
+*/}}
+{{- define "generic.validateIngress" -}}
+{{- if and .Values.ingress.enabled (not .Values.service.enabled) }}
+{{- fail "ingress.enabled requires service.enabled to be true." }}
 {{- end }}
 {{- end }}
 

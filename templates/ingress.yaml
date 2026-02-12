@@ -1,4 +1,5 @@
 {{- if .Values.ingress.enabled }}
+{{- include "generic.validateIngress" . }}
 {{- $fullName := include "generic.fullname" . }}
 {{- $svcPort := (index .Values.service.ports 0).port }}
 apiVersion: networking.k8s.io/v1
