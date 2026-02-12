@@ -211,7 +211,7 @@ serviceAccount:
   # -- Annotations for the service account (e.g., for IAM roles)
   annotations: {}
   # -- Automount API credentials into pods
-  automountServiceAccountToken: true
+  automountServiceAccountToken: false
 
 # =============================================================================
 # CONFIGURATION & SECRETS

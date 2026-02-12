@@ -1,0 +1,17 @@
+{{- if and .Values.service.enabled (ne (include "generic.workloadType" .) "cronjob") }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "generic.fullname" . }}-test-connection
+  labels:
+    {{- include "generic.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['{{ include "generic.fullname" . }}:{{ (index .Values.service.ports 0).port }}']
+  restartPolicy: Never
+{{- end }}
