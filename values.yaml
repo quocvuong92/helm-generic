@@ -58,6 +58,10 @@ workload:
     failedJobsHistoryLimit: 1
     # -- Restart policy for pods: OnFailure or Never
     restartPolicy: OnFailure
+    # -- Maximum time in seconds for the job to run
+    activeDeadlineSeconds: ""
+    # -- Number of retries before marking the job as failed
+    backoffLimit: 6
 
 # =============================================================================
 # CONTAINER CONFIGURATION
