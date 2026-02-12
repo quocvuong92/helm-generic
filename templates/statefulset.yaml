@@ -1,4 +1,5 @@
 {{- if eq (include "generic.workloadType" .) "statefulset" }}
+{{- include "generic.validateStorage" . }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -18,6 +19,9 @@ spec:
   {{- with .Values.workload.statefulset.updateStrategy }}
   updateStrategy:
     {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- if ne (toString .Values.workload.statefulset.minReadySeconds) "" }}
+  minReadySeconds: {{ .Values.workload.statefulset.minReadySeconds }}
   {{- end }}
   template:
     metadata:

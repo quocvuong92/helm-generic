@@ -1,5 +1,5 @@
 # =============================================================================
-# GENERIC HELM CHART v2.0
+# GENERIC HELM CHART v2.1
 # A flexible, generic Helm chart for deploying any containerized application
 # =============================================================================
 
@@ -19,6 +19,10 @@ workload:
       rollingUpdate:
         maxSurge: 25%
         maxUnavailable: 25%
+    # -- Number of old ReplicaSets to retain
+    revisionHistoryLimit: ""
+    # -- Minimum seconds a pod must be ready before considered available
+    minReadySeconds: ""
 
   # -- StatefulSet-specific settings (only used when type: statefulset)
   statefulset:
@@ -29,6 +33,8 @@ workload:
     # -- Update strategy for StatefulSet
     updateStrategy:
       type: RollingUpdate
+    # -- Minimum seconds a pod must be ready before considered available
+    minReadySeconds: ""
     # -- Volume claim templates for StatefulSet
     volumeClaimTemplates: []
       # - name: data
@@ -43,6 +49,10 @@ workload:
       type: RollingUpdate
       rollingUpdate:
         maxUnavailable: 1
+    # -- Number of old DaemonSet revisions to retain
+    revisionHistoryLimit: ""
+    # -- Minimum seconds a pod must be ready before considered available
+    minReadySeconds: ""
 
   # -- CronJob-specific settings (only used when type: cronjob)
   cronjob:
@@ -58,6 +68,10 @@ workload:
     failedJobsHistoryLimit: 1
     # -- Restart policy for pods: OnFailure or Never
     restartPolicy: OnFailure
+    # -- Maximum time in seconds for the job to run
+    activeDeadlineSeconds: ""
+    # -- Number of retries before marking the job as failed
+    backoffLimit: 6
 
 # =============================================================================
 # CONTAINER CONFIGURATION
@@ -131,6 +145,16 @@ readinessProbe: {}
 # -- Startup probe configuration
 startupProbe: {}
 
+# -- Container lifecycle hooks (preStop, postStart)
+lifecycle: {}
+  # preStop:
+  #   exec:
+  #     command: ["/bin/sh", "-c", "sleep 15"]
+  # postStart:
+  #   httpGet:
+  #     path: /ready
+  #     port: 8080
+
 # =============================================================================
 # POD CONFIGURATION
 # =============================================================================
@@ -155,6 +179,18 @@ pod:
   dnsConfig: {}
   # -- Termination grace period in seconds
   terminationGracePeriodSeconds: 30
+  # -- Priority class for pod scheduling
+  priorityClassName: ""
+  # -- Use the host's network namespace
+  hostNetwork: false
+  # -- Use the host's PID namespace
+  hostPID: false
+  # -- Use the host's IPC namespace
+  hostIPC: false
+  # -- Runtime class name (e.g., gvisor, kata)
+  runtimeClassName: ""
+  # -- Share process namespace between containers
+  shareProcessNamespace: false
   # -- Init containers to run before main container
   initContainers: []
   # -- Sidecar containers running alongside main container
@@ -175,7 +211,7 @@ serviceAccount:
   # -- Annotations for the service account (e.g., for IAM roles)
   annotations: {}
   # -- Automount API credentials into pods
-  automountServiceAccountToken: true
+  automountServiceAccountToken: false
 
 # =============================================================================
 # CONFIGURATION & SECRETS
@@ -211,6 +247,8 @@ service:
   enabled: true
   # -- Service type: ClusterIP, NodePort, LoadBalancer, or ExternalName
   type: ClusterIP
+  # -- Cluster IP (set to "None" for headless service, commonly used with StatefulSets)
+  clusterIP: ""
   # -- Service annotations
   annotations: {}
   # -- Service ports configuration

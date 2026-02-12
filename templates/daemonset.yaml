@@ -14,6 +14,12 @@ spec:
   updateStrategy:
     {{- toYaml . | nindent 4 }}
   {{- end }}
+  {{- if ne (toString .Values.workload.daemonset.revisionHistoryLimit) "" }}
+  revisionHistoryLimit: {{ .Values.workload.daemonset.revisionHistoryLimit }}
+  {{- end }}
+  {{- if ne (toString .Values.workload.daemonset.minReadySeconds) "" }}
+  minReadySeconds: {{ .Values.workload.daemonset.minReadySeconds }}
+  {{- end }}
   template:
     metadata:
       labels:

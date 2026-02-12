@@ -99,6 +99,28 @@ PDB is not valid for cronjob.
 {{- if eq $type "cronjob" }}
 {{- fail "podDisruptionBudget.enabled cannot be used with workload.type 'cronjob'." }}
 {{- end }}
+{{- if and .Values.podDisruptionBudget.minAvailable .Values.podDisruptionBudget.maxUnavailable }}
+{{- fail "podDisruptionBudget: set only ONE of minAvailable or maxUnavailable, not both." }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Validate storage configuration.
+storage.enabled creates a standalone PVC which conflicts with StatefulSet's volumeClaimTemplates.
+*/}}
+{{- define "generic.validateStorage" -}}
+{{- if and .Values.storage.enabled (eq (include "generic.workloadType" .) "statefulset") }}
+{{- fail "storage.enabled creates a standalone PVC which is not recommended with StatefulSets. Use workload.statefulset.volumeClaimTemplates instead for per-pod storage." }}
+{{- end }}
+{{- end }}
+
+{{/*
+Validate Ingress requires Service.
+*/}}
+{{- define "generic.validateIngress" -}}
+{{- if and .Values.ingress.enabled (not .Values.service.enabled) }}
+{{- fail "ingress.enabled requires service.enabled to be true." }}
 {{- end }}
 {{- end }}
 
@@ -272,20 +294,20 @@ Generate volume mounts for main container.
   {{- end }}
 {{- end }}
 {{- range .Values.configFiles }}
-{{- if not (and (hasKey . "mountPath") (hasKey . "content")) }}
-{{- fail "configFiles entries require 'mountPath' and 'content' keys" }}
+{{- if not (and (hasKey . "name") (hasKey . "mountPath") (hasKey . "content")) }}
+{{- fail "configFiles entries require 'name', 'mountPath', and 'content' keys" }}
 {{- end }}
 - name: config-volume
   mountPath: {{ .mountPath }}
-  subPath: {{ base .mountPath }}
+  subPath: {{ .name }}
 {{- end }}
 {{- range .Values.secretFiles }}
-{{- if not (and (hasKey . "mountPath") (hasKey . "content")) }}
-{{- fail "secretFiles entries require 'mountPath' and 'content' keys" }}
+{{- if not (and (hasKey . "name") (hasKey . "mountPath") (hasKey . "content")) }}
+{{- fail "secretFiles entries require 'name', 'mountPath', and 'content' keys" }}
 {{- end }}
 - name: secret-volume
   mountPath: {{ .mountPath }}
-  subPath: {{ base .mountPath }}
+  subPath: {{ .name }}
 {{- end }}
 {{- with .Values.pod.volumeMounts }}
 {{ toYaml . }}
@@ -329,8 +351,13 @@ Generate ConfigMap data entries from configFiles.
 */}}
 {{- define "generic.configData" -}}
 {{- $global := .context }}
+{{- $seen := dict }}
 {{- range .files }}
-{{ base .mountPath }}: |
+{{- if hasKey $seen .name }}
+{{- fail (printf "configFiles: duplicate name '%s'. Each entry must have a unique name." .name) }}
+{{- end }}
+{{- $_ := set $seen .name true }}
+{{ .name }}: |
 {{- include "generic.tplValue" (dict "value" .content "context" $global) | nindent 2 }}
 {{- end }}
 {{- end }}
@@ -340,8 +367,13 @@ Generate Secret data entries from secretFiles.
 */}}
 {{- define "generic.secretData" -}}
 {{- $global := .context }}
+{{- $seen := dict }}
 {{- range .files }}
-{{ base .mountPath }}: |
+{{- if hasKey $seen .name }}
+{{- fail (printf "secretFiles: duplicate name '%s'. Each entry must have a unique name." .name) }}
+{{- end }}
+{{- $_ := set $seen .name true }}
+{{ .name }}: |
 {{- include "generic.tplValue" (dict "value" .content "context" $global) | nindent 2 }}
 {{- end }}
 {{- end }}
@@ -397,6 +429,10 @@ Generate the main container specification.
   startupProbe:
     {{- toYaml . | nindent 4 }}
   {{- end }}
+  {{- with .Values.lifecycle }}
+  lifecycle:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   {{- with .Values.resources }}
   resources:
     {{- toYaml . | nindent 4 }}
@@ -424,6 +460,24 @@ imagePullSecrets:
 {{- end }}
 serviceAccountName: {{ include "generic.serviceAccountName" . }}
 automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+{{- with .Values.pod.priorityClassName }}
+priorityClassName: {{ . }}
+{{- end }}
+{{- with .Values.pod.runtimeClassName }}
+runtimeClassName: {{ . }}
+{{- end }}
+{{- if .Values.pod.hostNetwork }}
+hostNetwork: true
+{{- end }}
+{{- if .Values.pod.hostPID }}
+hostPID: true
+{{- end }}
+{{- if .Values.pod.hostIPC }}
+hostIPC: true
+{{- end }}
+{{- if .Values.pod.shareProcessNamespace }}
+shareProcessNamespace: true
+{{- end }}
 {{- with .Values.pod.terminationGracePeriodSeconds }}
 terminationGracePeriodSeconds: {{ . }}
 {{- end }}
