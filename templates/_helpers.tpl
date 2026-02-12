@@ -417,6 +417,10 @@ Generate the main container specification.
   startupProbe:
     {{- toYaml . | nindent 4 }}
   {{- end }}
+  {{- with .Values.lifecycle }}
+  lifecycle:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   {{- with .Values.resources }}
   resources:
     {{- toYaml . | nindent 4 }}
@@ -444,6 +448,24 @@ imagePullSecrets:
 {{- end }}
 serviceAccountName: {{ include "generic.serviceAccountName" . }}
 automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+{{- with .Values.pod.priorityClassName }}
+priorityClassName: {{ . }}
+{{- end }}
+{{- with .Values.pod.runtimeClassName }}
+runtimeClassName: {{ . }}
+{{- end }}
+{{- if .Values.pod.hostNetwork }}
+hostNetwork: true
+{{- end }}
+{{- if .Values.pod.hostPID }}
+hostPID: true
+{{- end }}
+{{- if .Values.pod.hostIPC }}
+hostIPC: true
+{{- end }}
+{{- if .Values.pod.shareProcessNamespace }}
+shareProcessNamespace: true
+{{- end }}
 {{- with .Values.pod.terminationGracePeriodSeconds }}
 terminationGracePeriodSeconds: {{ . }}
 {{- end }}

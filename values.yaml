@@ -135,6 +135,16 @@ readinessProbe: {}
 # -- Startup probe configuration
 startupProbe: {}
 
+# -- Container lifecycle hooks (preStop, postStart)
+lifecycle: {}
+  # preStop:
+  #   exec:
+  #     command: ["/bin/sh", "-c", "sleep 15"]
+  # postStart:
+  #   httpGet:
+  #     path: /ready
+  #     port: 8080
+
 # =============================================================================
 # POD CONFIGURATION
 # =============================================================================
@@ -159,6 +169,18 @@ pod:
   dnsConfig: {}
   # -- Termination grace period in seconds
   terminationGracePeriodSeconds: 30
+  # -- Priority class for pod scheduling
+  priorityClassName: ""
+  # -- Use the host's network namespace
+  hostNetwork: false
+  # -- Use the host's PID namespace
+  hostPID: false
+  # -- Use the host's IPC namespace
+  hostIPC: false
+  # -- Runtime class name (e.g., gvisor, kata)
+  runtimeClassName: ""
+  # -- Share process namespace between containers
+  shareProcessNamespace: false
   # -- Init containers to run before main container
   initContainers: []
   # -- Sidecar containers running alongside main container
