@@ -38,6 +38,7 @@ securityContext:
   readOnlyRootFilesystem: true
 
 pod:
+  hostNetwork: true
   tolerations:
     - key: node-role.kubernetes.io/master
       effect: NoSchedule

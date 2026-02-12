@@ -51,6 +51,11 @@ securityContext:
   runAsUser: 1000
   readOnlyRootFilesystem: true
 
+lifecycle:
+  preStop:
+    exec:
+      command: ["/bin/sh", "-c", "sleep 15"]
+
 livenessProbe:
   httpGet:
     path: /health

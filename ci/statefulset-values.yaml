@@ -59,6 +59,7 @@ service:
 
 podDisruptionBudget:
   enabled: true
+  minAvailable: null
   maxUnavailable: 1
 
 rbac:

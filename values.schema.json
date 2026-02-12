@@ -24,6 +24,20 @@
           "type": "object",
           "description": "Deployment-specific settings",
           "properties": {
+            "revisionHistoryLimit": {
+              "oneOf": [
+                { "type": "integer", "minimum": 0 },
+                { "type": "string" }
+              ],
+              "description": "Number of old ReplicaSets to retain"
+            },
+            "minReadySeconds": {
+              "oneOf": [
+                { "type": "integer", "minimum": 0 },
+                { "type": "string" }
+              ],
+              "description": "Minimum seconds a pod should be ready before considered available"
+            },
             "strategy": {
               "type": "object",
               "properties": {
@@ -56,6 +70,13 @@
           "type": "object",
           "description": "StatefulSet-specific settings",
           "properties": {
+            "minReadySeconds": {
+              "oneOf": [
+                { "type": "integer", "minimum": 0 },
+                { "type": "string" }
+              ],
+              "description": "Minimum seconds a pod should be ready before considered available"
+            },
             "serviceName": {
               "type": "string",
               "description": "Service name for StatefulSet (defaults to fullname)"
@@ -105,6 +126,20 @@
           "type": "object",
           "description": "DaemonSet-specific settings",
           "properties": {
+            "revisionHistoryLimit": {
+              "oneOf": [
+                { "type": "integer", "minimum": 0 },
+                { "type": "string" }
+              ],
+              "description": "Number of old DaemonSet revisions to retain"
+            },
+            "minReadySeconds": {
+              "oneOf": [
+                { "type": "integer", "minimum": 0 },
+                { "type": "string" }
+              ],
+              "description": "Minimum seconds a pod should be ready before considered available"
+            },
             "updateStrategy": {
               "type": "object",
               "properties": {
@@ -158,6 +193,18 @@
               "type": "string",
               "enum": ["OnFailure", "Never"],
               "default": "OnFailure"
+            },
+            "activeDeadlineSeconds": {
+              "oneOf": [
+                { "type": "integer", "minimum": 0 },
+                { "type": "string" }
+              ],
+              "description": "Duration in seconds the Job may be active before termination"
+            },
+            "backoffLimit": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of retries before marking the Job as failed"
             }
           }
         }
@@ -296,6 +343,14 @@
       "type": "object",
       "description": "Startup probe configuration"
     },
+    "lifecycle": {
+      "type": "object",
+      "description": "Container lifecycle hooks",
+      "properties": {
+        "preStop": { "type": "object" },
+        "postStart": { "type": "object" }
+      }
+    },
     "pod": {
       "type": "object",
       "description": "Pod configuration",
@@ -319,7 +374,31 @@
         "initContainers": { "type": "array" },
         "sidecars": { "type": "array" },
         "volumes": { "type": "array" },
-        "volumeMounts": { "type": "array" }
+        "volumeMounts": { "type": "array" },
+        "priorityClassName": {
+          "type": "string",
+          "description": "Priority class name for the pod"
+        },
+        "hostNetwork": {
+          "type": "boolean",
+          "description": "Use host network namespace"
+        },
+        "hostPID": {
+          "type": "boolean",
+          "description": "Use host PID namespace"
+        },
+        "hostIPC": {
+          "type": "boolean",
+          "description": "Use host IPC namespace"
+        },
+        "runtimeClassName": {
+          "type": "string",
+          "description": "Runtime class name for the pod"
+        },
+        "shareProcessNamespace": {
+          "type": "boolean",
+          "description": "Share process namespace between containers"
+        }
       }
     },
     "serviceAccount": {
@@ -393,6 +472,10 @@
           "default": "ClusterIP"
         },
         "annotations": { "type": "object" },
+        "clusterIP": {
+          "type": "string",
+          "description": "Cluster IP for the service (use 'None' for headless)"
+        },
         "ports": {
           "type": "array",
           "items": {
