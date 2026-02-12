@@ -19,6 +19,10 @@ workload:
       rollingUpdate:
         maxSurge: 25%
         maxUnavailable: 25%
+    # -- Number of old ReplicaSets to retain
+    revisionHistoryLimit: ""
+    # -- Minimum seconds a pod must be ready before considered available
+    minReadySeconds: ""
 
   # -- StatefulSet-specific settings (only used when type: statefulset)
   statefulset:
@@ -29,6 +33,8 @@ workload:
     # -- Update strategy for StatefulSet
     updateStrategy:
       type: RollingUpdate
+    # -- Minimum seconds a pod must be ready before considered available
+    minReadySeconds: ""
     # -- Volume claim templates for StatefulSet
     volumeClaimTemplates: []
       # - name: data
@@ -43,6 +49,10 @@ workload:
       type: RollingUpdate
       rollingUpdate:
         maxUnavailable: 1
+    # -- Number of old DaemonSet revisions to retain
+    revisionHistoryLimit: ""
+    # -- Minimum seconds a pod must be ready before considered available
+    minReadySeconds: ""
 
   # -- CronJob-specific settings (only used when type: cronjob)
   cronjob:
@@ -237,6 +247,8 @@ service:
   enabled: true
   # -- Service type: ClusterIP, NodePort, LoadBalancer, or ExternalName
   type: ClusterIP
+  # -- Cluster IP (set to "None" for headless service, commonly used with StatefulSets)
+  clusterIP: ""
   # -- Service annotations
   annotations: {}
   # -- Service ports configuration
