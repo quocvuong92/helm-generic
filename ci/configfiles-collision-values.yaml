@@ -1,0 +1,9 @@
+configFiles:
+  - name: app-config
+    mountPath: /etc/app/config.yaml
+    content: |
+      app: true
+  - name: other-config
+    mountPath: /etc/other/config.yaml
+    content: |
+      other: true

@@ -272,20 +272,20 @@ Generate volume mounts for main container.
   {{- end }}
 {{- end }}
 {{- range .Values.configFiles }}
-{{- if not (and (hasKey . "mountPath") (hasKey . "content")) }}
-{{- fail "configFiles entries require 'mountPath' and 'content' keys" }}
+{{- if not (and (hasKey . "name") (hasKey . "mountPath") (hasKey . "content")) }}
+{{- fail "configFiles entries require 'name', 'mountPath', and 'content' keys" }}
 {{- end }}
 - name: config-volume
   mountPath: {{ .mountPath }}
-  subPath: {{ base .mountPath }}
+  subPath: {{ .name }}
 {{- end }}
 {{- range .Values.secretFiles }}
-{{- if not (and (hasKey . "mountPath") (hasKey . "content")) }}
-{{- fail "secretFiles entries require 'mountPath' and 'content' keys" }}
+{{- if not (and (hasKey . "name") (hasKey . "mountPath") (hasKey . "content")) }}
+{{- fail "secretFiles entries require 'name', 'mountPath', and 'content' keys" }}
 {{- end }}
 - name: secret-volume
   mountPath: {{ .mountPath }}
-  subPath: {{ base .mountPath }}
+  subPath: {{ .name }}
 {{- end }}
 {{- with .Values.pod.volumeMounts }}
 {{ toYaml . }}
@@ -329,8 +329,13 @@ Generate ConfigMap data entries from configFiles.
 */}}
 {{- define "generic.configData" -}}
 {{- $global := .context }}
+{{- $seen := dict }}
 {{- range .files }}
-{{ base .mountPath }}: |
+{{- if hasKey $seen .name }}
+{{- fail (printf "configFiles: duplicate name '%s'. Each entry must have a unique name." .name) }}
+{{- end }}
+{{- $_ := set $seen .name true }}
+{{ .name }}: |
 {{- include "generic.tplValue" (dict "value" .content "context" $global) | nindent 2 }}
 {{- end }}
 {{- end }}
@@ -340,8 +345,13 @@ Generate Secret data entries from secretFiles.
 */}}
 {{- define "generic.secretData" -}}
 {{- $global := .context }}
+{{- $seen := dict }}
 {{- range .files }}
-{{ base .mountPath }}: |
+{{- if hasKey $seen .name }}
+{{- fail (printf "secretFiles: duplicate name '%s'. Each entry must have a unique name." .name) }}
+{{- end }}
+{{- $_ := set $seen .name true }}
+{{ .name }}: |
 {{- include "generic.tplValue" (dict "value" .content "context" $global) | nindent 2 }}
 {{- end }}
 {{- end }}
