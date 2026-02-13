@@ -22,22 +22,28 @@ sources:
   - https://github.com/quocvuong92/helm-generic
 annotations:
   artifacthub.io/changes: |
-    - kind: changed
-      description: Complete redesign with cleaner values structure
-    - kind: changed
-      description: Explicit workload.type selection (deployment/statefulset/daemonset/cronjob)
+    - kind: fixed
+      description: Fix configFiles/secretFiles name collision using name field as data key
+    - kind: fixed
+      description: Auto-skip Service creation for CronJob workloads
+    - kind: fixed
+      description: Validate against storage.enabled with StatefulSet (use volumeClaimTemplates instead)
+    - kind: fixed
+      description: Handle zero-value fields (backoffLimit=0, revisionHistoryLimit=0)
     - kind: added
-      description: Validation for workload type conflicts
+      description: Container lifecycle hooks (preStop, postStart)
     - kind: added
-      description: Consistent labels and annotations across all resources
-    - kind: changed
-      description: Renamed mountConfig/mountSecret to configFiles/secretFiles
-    - kind: changed
-      description: Moved pod.containers to pod.sidecars for clarity
-    - kind: changed
-      description: Restructured autoscaling.metrics for better organization
+      description: Pod features - priorityClassName, hostNetwork, hostPID, hostIPC, runtimeClassName, shareProcessNamespace
     - kind: added
-      description: Support for multiple RBAC roles across namespaces
-    - kind: removed
-      description: Removed deprecated storage.requests.storage field
+      description: Headless Service support via service.clusterIP
+    - kind: added
+      description: revisionHistoryLimit and minReadySeconds for Deployment/StatefulSet/DaemonSet
+    - kind: added
+      description: CronJob backoffLimit and activeDeadlineSeconds
+    - kind: added
+      description: Cross-resource validations (Ingress requires Service, PDB mutual exclusion)
+    - kind: added
+      description: Helm test template for service connectivity
+    - kind: security
+      description: Default automountServiceAccountToken to false
   artifacthub.io/license: MIT
