@@ -132,6 +132,11 @@ Validate Service configuration.
 {{- if not .Values.service.ports }}
 {{- fail "service.enabled requires at least one service.ports entry." }}
 {{- end }}
+{{- if eq .Values.service.type "ExternalName" }}
+{{- if not .Values.service.externalName }}
+{{- fail "service.type ExternalName requires service.externalName." }}
+{{- end }}
+{{- end }}
 {{- end }}
 {{- end }}
 

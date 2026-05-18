@@ -1,0 +1,6 @@
+service:
+  enabled: true
+  type: ExternalName
+  ports:
+    - name: https
+      port: 443

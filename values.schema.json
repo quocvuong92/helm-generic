@@ -472,6 +472,10 @@
           "default": "ClusterIP"
         },
         "annotations": { "type": "object" },
+        "externalName": {
+          "type": "string",
+          "description": "External DNS name when service.type is ExternalName"
+        },
         "clusterIP": {
           "type": "string",
           "description": "Cluster IP for the service (use 'None' for headless)"

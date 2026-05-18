@@ -247,6 +247,8 @@ service:
   enabled: true
   # -- Service type: ClusterIP, NodePort, LoadBalancer, or ExternalName
   type: ClusterIP
+  # -- External DNS name when service.type is ExternalName
+  externalName: ""
   # -- Cluster IP (set to "None" for headless service, commonly used with StatefulSets)
   clusterIP: ""
   # -- Service annotations

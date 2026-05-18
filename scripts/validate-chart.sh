@@ -12,6 +12,7 @@ valid_values=(
   "ci/storage-values.yaml"
   "ci/sidecars-values.yaml"
   "ci/configfiles-collision-values.yaml"
+  "ci/externalname-values.yaml"
 )
 
 helm lint "$chart_dir"
