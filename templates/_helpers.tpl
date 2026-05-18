@@ -96,9 +96,13 @@ HPA is only valid for deployment and statefulset.
 {{- if gt (int .Values.autoscaling.minReplicas) (int .Values.autoscaling.maxReplicas) }}
 {{- fail "autoscaling.minReplicas cannot be greater than autoscaling.maxReplicas." }}
 {{- end }}
-{{- $hasCPU := .Values.autoscaling.metrics.cpu.enabled }}
-{{- $hasMemory := .Values.autoscaling.metrics.memory.enabled }}
-{{- $hasCustom := gt (len .Values.autoscaling.metrics.custom) 0 }}
+{{- $metrics := default dict .Values.autoscaling.metrics }}
+{{- $cpu := default dict (get $metrics "cpu") }}
+{{- $memory := default dict (get $metrics "memory") }}
+{{- $custom := default list (get $metrics "custom") }}
+{{- $hasCPU := and (hasKey $cpu "enabled") (get $cpu "enabled") }}
+{{- $hasMemory := and (hasKey $memory "enabled") (get $memory "enabled") }}
+{{- $hasCustom := gt (len $custom) 0 }}
 {{- if not (or $hasCPU $hasMemory $hasCustom) }}
 {{- fail "autoscaling.enabled requires at least one enabled metric: cpu, memory, or autoscaling.metrics.custom." }}
 {{- end }}
