@@ -31,9 +31,9 @@ Replicas: {{ .Values.workload.replicas }}
 {{- if .Values.ingress.enabled }}
 
 Ingress URLs:
-{{- range .Values.ingress.hosts }}
-{{- range .paths }}
-  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $.host }}{{ .path }}
+{{- range $host := .Values.ingress.hosts }}
+{{- range $host.paths }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
 {{- end }}
 {{- end }}
 
@@ -64,7 +64,7 @@ Storage:
   Mount: {{ .Values.storage.mountPath }}
 {{- end }}
 
-{{- if .Values.serviceMonitor.enabled }}
+{{- if and .Values.serviceMonitor.enabled .Values.service.enabled .Values.service.ports }}
 
 Prometheus Metrics:
   Port: {{ (index .Values.service.ports 0).name }}

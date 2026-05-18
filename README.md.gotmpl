@@ -293,10 +293,15 @@ The chart validates configurations and fails with clear error messages:
 | Invalid `workload.type` | Must be: deployment, statefulset, daemonset, cronjob |
 | HPA with daemonset/cronjob | HPA only supports deployment and statefulset |
 | PDB with cronjob | PDB cannot be used with cronjob |
+| PDB with `maxUnavailable` | Set `minAvailable: null` when using `maxUnavailable` |
+| `service.type: ExternalName` | `service.externalName` is required |
+| `storage.volumeMode: Block` | `storage.devicePath` is required |
+| Ingress enabled | Requires a rendered Service (`service.enabled: true` and non-CronJob workload) |
+| ServiceMonitor enabled | Requires a rendered Service (`service.enabled: true` and non-CronJob workload) |
 
 ## Helm Tests
 
-The default Helm test uses configurable TCP connectivity through the `tests` values. Set `tests.servicePortName` to target a named Service port, or override `tests.command` and `tests.args` for custom checks.
+The default Helm test uses TCP connectivity through the rendered Service. Set `tests.servicePortName` to target a named Service port, or override `tests.command` and `tests.args` for custom checks.
 
 {{ template "chart.maintainersSection" . }}
 
