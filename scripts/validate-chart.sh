@@ -11,6 +11,7 @@ valid_values=(
   "ci/cronjob-values.yaml"
   "ci/storage-values.yaml"
   "ci/storage-block-values.yaml"
+  "ci/pdb-zero-values.yaml"
   "ci/sidecars-values.yaml"
   "ci/configfiles-collision-values.yaml"
   "ci/externalname-values.yaml"

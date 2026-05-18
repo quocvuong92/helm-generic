@@ -77,6 +77,13 @@ Usage: {{ include "generic.isWorkloadType" (dict "context" . "type" "deployment"
 {{- end }}
 
 {{/*
+Check whether a map has a non-null value for a key.
+*/}}
+{{- define "generic.hasValue" -}}
+{{- if and (hasKey .map .key) (ne (toString (get .map .key)) "<nil>") }}true{{- end }}
+{{- end }}
+
+{{/*
 Validate HPA configuration.
 HPA is only valid for deployment and statefulset.
 */}}
@@ -85,6 +92,15 @@ HPA is only valid for deployment and statefulset.
 {{- $type := include "generic.workloadType" . }}
 {{- if or (eq $type "daemonset") (eq $type "cronjob") }}
 {{- fail (printf "autoscaling.enabled cannot be used with workload.type '%s'. HPA only supports deployment and statefulset." $type) }}
+{{- end }}
+{{- if gt (int .Values.autoscaling.minReplicas) (int .Values.autoscaling.maxReplicas) }}
+{{- fail "autoscaling.minReplicas cannot be greater than autoscaling.maxReplicas." }}
+{{- end }}
+{{- $hasCPU := .Values.autoscaling.metrics.cpu.enabled }}
+{{- $hasMemory := .Values.autoscaling.metrics.memory.enabled }}
+{{- $hasCustom := gt (len .Values.autoscaling.metrics.custom) 0 }}
+{{- if not (or $hasCPU $hasMemory $hasCustom) }}
+{{- fail "autoscaling.enabled requires at least one enabled metric: cpu, memory, or autoscaling.metrics.custom." }}
 {{- end }}
 {{- end }}
 {{- end }}
@@ -99,8 +115,14 @@ PDB is not valid for cronjob.
 {{- if eq $type "cronjob" }}
 {{- fail "podDisruptionBudget.enabled cannot be used with workload.type 'cronjob'." }}
 {{- end }}
-{{- if and .Values.podDisruptionBudget.minAvailable .Values.podDisruptionBudget.maxUnavailable }}
+{{- $pdb := .Values.podDisruptionBudget }}
+{{- $hasMin := include "generic.hasValue" (dict "map" $pdb "key" "minAvailable") }}
+{{- $hasMax := include "generic.hasValue" (dict "map" $pdb "key" "maxUnavailable") }}
+{{- if and $hasMin $hasMax }}
 {{- fail "podDisruptionBudget: set only ONE of minAvailable or maxUnavailable, not both." }}
+{{- end }}
+{{- if not (or $hasMin $hasMax) }}
+{{- fail "podDisruptionBudget.enabled requires minAvailable or maxUnavailable." }}
 {{- end }}
 {{- end }}
 {{- end }}

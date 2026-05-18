@@ -376,7 +376,7 @@ podDisruptionBudget:
   annotations: {}
   # -- Minimum available pods (number or percentage)
   minAvailable: 1
-  # -- Maximum unavailable pods (use ONE of minAvailable or maxUnavailable)
+  # -- Maximum unavailable pods. Set minAvailable: null when using maxUnavailable.
   # maxUnavailable: 1
 
 # =============================================================================
