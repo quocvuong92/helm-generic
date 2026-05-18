@@ -509,6 +509,23 @@
         }
       }
     },
+    "tests": {
+      "type": "object",
+      "description": "Helm test configuration",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "image": { "type": "string", "default": "busybox:1.36" },
+        "servicePortName": { "type": "string" },
+        "command": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "args": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
     "ingress": {
       "type": "object",
       "description": "Ingress configuration",

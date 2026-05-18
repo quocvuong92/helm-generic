@@ -258,6 +258,18 @@ service:
       targetPort: 80
       protocol: TCP
 
+tests:
+  # -- Enable Helm test pod for Service connectivity
+  enabled: true
+  # -- Test image
+  image: busybox:1.36
+  # -- Service port name to test (defaults to first service port)
+  servicePortName: ""
+  # -- Override test command
+  command: []
+  # -- Override test args
+  args: []
+
 ingress:
   # -- Enable Ingress
   enabled: false

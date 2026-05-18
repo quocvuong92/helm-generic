@@ -294,6 +294,10 @@ The chart validates configurations and fails with clear error messages:
 | HPA with daemonset/cronjob | HPA only supports deployment and statefulset |
 | PDB with cronjob | PDB cannot be used with cronjob |
 
+## Helm Tests
+
+The default Helm test uses configurable TCP connectivity through the `tests` values. Set `tests.servicePortName` to target a named Service port, or override `tests.command` and `tests.args` for custom checks.
+
 {{ template "chart.maintainersSection" . }}
 
 ## License

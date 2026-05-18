@@ -1,4 +1,14 @@
-{{- if and .Values.service.enabled (ne (include "generic.workloadType" .) "cronjob") }}
+{{- if and .Values.tests.enabled .Values.service.enabled (ne (include "generic.workloadType" .) "cronjob") }}
+{{- include "generic.validateService" . }}
+{{- $servicePort := index .Values.service.ports 0 }}
+{{- $port := $servicePort.port }}
+{{- if .Values.tests.servicePortName }}
+{{- range .Values.service.ports }}
+{{- if eq .name $.Values.tests.servicePortName }}
+{{- $port = .port }}
+{{- end }}
+{{- end }}
+{{- end }}
 apiVersion: v1
 kind: Pod
 metadata:
@@ -9,9 +19,20 @@ metadata:
     "helm.sh/hook": test
 spec:
   containers:
-    - name: wget
-      image: busybox
-      command: ['wget']
-      args: ['{{ include "generic.fullname" . }}:{{ (index .Values.service.ports 0).port }}']
+    - name: connectivity
+      image: {{ .Values.tests.image }}
+      {{- if .Values.tests.command }}
+      command:
+        {{- toYaml .Values.tests.command | nindent 8 }}
+      {{- else }}
+      command: ["sh", "-c"]
+      {{- end }}
+      {{- if .Values.tests.args }}
+      args:
+        {{- toYaml .Values.tests.args | nindent 8 }}
+      {{- else }}
+      args:
+        - nc -z -w 5 {{ include "generic.fullname" . }} {{ $port }}
+      {{- end }}
   restartPolicy: Never
 {{- end }}

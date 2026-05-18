@@ -125,6 +125,17 @@ Validate Ingress requires Service.
 {{- end }}
 
 {{/*
+Validate Service configuration.
+*/}}
+{{- define "generic.validateService" -}}
+{{- if and .Values.service.enabled (ne (include "generic.workloadType" .) "cronjob") }}
+{{- if not .Values.service.ports }}
+{{- fail "service.enabled requires at least one service.ports entry." }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
 ==============================================================================
 MODULE 3: METADATA (LABELS & ANNOTATIONS)
 ==============================================================================
