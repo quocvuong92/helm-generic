@@ -29,6 +29,18 @@ annotations:
     - kind: fixed
       description: Validate against storage.enabled with StatefulSet (use volumeClaimTemplates instead)
     - kind: fixed
+      description: Render ExternalName Services with externalName and required validation
+    - kind: fixed
+      description: Prevent pod selector labels from being overridden by custom labels
+    - kind: fixed
+      description: Render HPA metrics safely when CPU or memory targets are null
+    - kind: fixed
+      description: Validate HPA min/max replica and empty/null metric edge cases
+    - kind: fixed
+      description: Validate PDB minAvailable/maxUnavailable mutual exclusion and zero values
+    - kind: fixed
+      description: Validate Ingress and ServiceMonitor dependencies on Service rendering
+    - kind: fixed
       description: Handle zero-value fields (backoffLimit=0, revisionHistoryLimit=0)
     - kind: added
       description: Container lifecycle hooks (preStop, postStart)
@@ -43,7 +55,9 @@ annotations:
     - kind: added
       description: Cross-resource validations (Ingress requires Service, PDB mutual exclusion)
     - kind: added
-      description: Helm test template for service connectivity
+      description: Configurable generic Helm test connectivity template
+    - kind: added
+      description: Block storage volumeDevices support with devicePath validation
     - kind: security
       description: Default automountServiceAccountToken to false
   artifacthub.io/license: MIT
