@@ -1,4 +1,5 @@
 {{- if and .Values.service.enabled (ne (include "generic.workloadType" .) "cronjob") }}
+{{- include "generic.validateService" . }}
 apiVersion: v1
 kind: Service
 metadata:
