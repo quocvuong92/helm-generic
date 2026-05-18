@@ -83,6 +83,17 @@ Check whether a map has a non-null value for a key.
 {{- if and (hasKey .map .key) (ne (toString (get .map .key)) "<nil>") }}true{{- end }}
 {{- end }}
 
+{{- define "generic.validatePodLabels" -}}
+{{- with .Values.pod.labels }}
+{{- if hasKey . "app.kubernetes.io/name" }}
+{{- fail "pod.labels cannot override selector label 'app.kubernetes.io/name'." }}
+{{- end }}
+{{- if hasKey . "app.kubernetes.io/instance" }}
+{{- fail "pod.labels cannot override selector label 'app.kubernetes.io/instance'." }}
+{{- end }}
+{{- end }}
+{{- end }}
+
 {{/*
 Validate HPA configuration.
 HPA is only valid for deployment and statefulset.
