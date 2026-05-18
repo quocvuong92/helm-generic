@@ -12,6 +12,7 @@ valid_values=(
   "ci/storage-values.yaml"
   "ci/storage-block-values.yaml"
   "ci/pdb-zero-values.yaml"
+  "ci/hpa-custom-null-cpu-values.yaml"
   "ci/sidecars-values.yaml"
   "ci/configfiles-collision-values.yaml"
   "ci/externalname-values.yaml"

@@ -1,5 +1,9 @@
 {{- if .Values.autoscaling.enabled }}
 {{- include "generic.validateHPA" . }}
+{{- $metrics := default dict .Values.autoscaling.metrics }}
+{{- $cpu := default dict (get $metrics "cpu") }}
+{{- $memory := default dict (get $metrics "memory") }}
+{{- $custom := default list (get $metrics "custom") }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -19,23 +23,23 @@ spec:
   minReplicas: {{ .Values.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
   metrics:
-    {{- if .Values.autoscaling.metrics.cpu.enabled }}
+    {{- if and (hasKey $cpu "enabled") (get $cpu "enabled") }}
     - type: Resource
       resource:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: {{ .Values.autoscaling.metrics.cpu.averageUtilization }}
+          averageUtilization: {{ $cpu.averageUtilization }}
     {{- end }}
-    {{- if .Values.autoscaling.metrics.memory.enabled }}
+    {{- if and (hasKey $memory "enabled") (get $memory "enabled") }}
     - type: Resource
       resource:
         name: memory
         target:
           type: Utilization
-          averageUtilization: {{ .Values.autoscaling.metrics.memory.averageUtilization }}
+          averageUtilization: {{ $memory.averageUtilization }}
     {{- end }}
-    {{- with .Values.autoscaling.metrics.custom }}
+    {{- with $custom }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
   {{- with .Values.autoscaling.behavior }}
