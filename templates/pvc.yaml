@@ -1,4 +1,5 @@
 {{- if .Values.storage.enabled }}
+{{- include "generic.validateStorage" . }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

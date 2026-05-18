@@ -113,6 +113,9 @@ storage.enabled creates a standalone PVC which conflicts with StatefulSet's volu
 {{- if and .Values.storage.enabled (eq (include "generic.workloadType" .) "statefulset") }}
 {{- fail "storage.enabled creates a standalone PVC which is not recommended with StatefulSets. Use workload.statefulset.volumeClaimTemplates instead for per-pod storage." }}
 {{- end }}
+{{- if and .Values.storage.enabled (eq .Values.storage.volumeMode "Block") (not .Values.storage.devicePath) }}
+{{- fail "storage.volumeMode Block requires storage.devicePath." }}
+{{- end }}
 {{- end }}
 
 {{/*
@@ -302,7 +305,7 @@ MODULE 8: VOLUMES & VOLUME MOUNTS
 Generate volume mounts for main container.
 */}}
 {{- define "generic.volumeMounts" -}}
-{{- if .Values.storage.enabled }}
+{{- if and .Values.storage.enabled (ne .Values.storage.volumeMode "Block") }}
 - name: storage
   mountPath: {{ .Values.storage.mountPath }}
   {{- with .Values.storage.subPath }}
@@ -326,6 +329,19 @@ Generate volume mounts for main container.
   subPath: {{ .name }}
 {{- end }}
 {{- with .Values.pod.volumeMounts }}
+{{ toYaml . }}
+{{- end }}
+{{- end }}
+
+{{/*
+Generate volume devices for main container.
+*/}}
+{{- define "generic.volumeDevices" -}}
+{{- if and .Values.storage.enabled (eq .Values.storage.volumeMode "Block") }}
+- name: storage
+  devicePath: {{ .Values.storage.devicePath }}
+{{- end }}
+{{- with .Values.pod.volumeDevices }}
 {{ toYaml . }}
 {{- end }}
 {{- end }}
@@ -457,6 +473,11 @@ Generate the main container specification.
   {{- if $volumeMounts }}
   volumeMounts:
     {{- $volumeMounts | nindent 4 }}
+  {{- end }}
+  {{- $volumeDevices := include "generic.volumeDevices" . }}
+  {{- if $volumeDevices }}
+  volumeDevices:
+    {{- $volumeDevices | nindent 4 }}
   {{- end }}
 {{- end }}
 

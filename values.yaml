@@ -199,6 +199,8 @@ pod:
   volumes: []
   # -- Additional volume mounts for main container
   volumeMounts: []
+  # -- Additional volume devices for main container
+  volumeDevices: []
 
 # =============================================================================
 # SERVICE ACCOUNT
@@ -322,6 +324,8 @@ storage:
   storageClassName: ""
   # -- Volume mode: Filesystem or Block
   volumeMode: Filesystem
+  # -- Device path in container when volumeMode is Block
+  devicePath: ""
   # -- Mount path in container
   mountPath: /data
   # -- SubPath within the volume to mount

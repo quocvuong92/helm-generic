@@ -1,0 +1,8 @@
+storage:
+  enabled: true
+  volumeMode: Block
+  devicePath: /dev/xvda
+  size: 10Gi
+
+tests:
+  enabled: false

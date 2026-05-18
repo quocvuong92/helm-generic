@@ -375,6 +375,7 @@
         "sidecars": { "type": "array" },
         "volumes": { "type": "array" },
         "volumeMounts": { "type": "array" },
+        "volumeDevices": { "type": "array" },
         "priorityClassName": {
           "type": "string",
           "description": "Priority class name for the pod"
@@ -631,6 +632,10 @@
           "type": "string",
           "enum": ["Filesystem", "Block"],
           "default": "Filesystem"
+        },
+        "devicePath": {
+          "type": "string",
+          "description": "Device path in container when volumeMode is Block"
         },
         "mountPath": {
           "type": "string",
