@@ -545,11 +545,12 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["host"],
+            "required": ["host", "paths"],
             "properties": {
               "host": { "type": "string" },
               "paths": {
                 "type": "array",
+                "minItems": 1,
                 "items": {
                   "type": "object",
                   "required": ["path"],

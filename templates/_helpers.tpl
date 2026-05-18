@@ -145,11 +145,41 @@ storage.enabled creates a standalone PVC which conflicts with StatefulSet's volu
 {{- end }}
 
 {{/*
-Validate Ingress requires Service.
+Validate Ingress dependencies.
 */}}
 {{- define "generic.validateIngress" -}}
-{{- if and .Values.ingress.enabled (not .Values.service.enabled) }}
+{{- if .Values.ingress.enabled }}
+{{- if eq (include "generic.workloadType" .) "cronjob" }}
+{{- fail "ingress.enabled cannot be used with workload.type 'cronjob' because CronJobs do not render a Service." }}
+{{- end }}
+{{- if not .Values.service.enabled }}
 {{- fail "ingress.enabled requires service.enabled to be true." }}
+{{- end }}
+{{- if not .Values.ingress.hosts }}
+{{- fail "ingress.enabled requires at least one ingress.hosts entry." }}
+{{- end }}
+{{- range .Values.ingress.hosts }}
+{{- if not .paths }}
+{{- fail (printf "ingress host '%s' requires at least one path." .host) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Validate ServiceMonitor dependencies.
+*/}}
+{{- define "generic.validateServiceMonitor" -}}
+{{- if .Values.serviceMonitor.enabled }}
+{{- if eq (include "generic.workloadType" .) "cronjob" }}
+{{- fail "serviceMonitor.enabled cannot be used with workload.type 'cronjob' because CronJobs do not render a Service." }}
+{{- end }}
+{{- if not .Values.service.enabled }}
+{{- fail "serviceMonitor.enabled requires service.enabled to be true." }}
+{{- end }}
+{{- if and (not .Values.serviceMonitor.endpoints) (not .Values.service.ports) }}
+{{- fail "serviceMonitor.enabled requires service.ports or serviceMonitor.endpoints." }}
+{{- end }}
 {{- end }}
 {{- end }}
 

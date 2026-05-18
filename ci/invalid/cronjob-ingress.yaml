@@ -1,0 +1,8 @@
+workload:
+  type: cronjob
+ingress:
+  enabled: true
+  hosts:
+    - host: cron.example.com
+      paths:
+        - path: /
