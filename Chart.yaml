@@ -41,6 +41,10 @@ annotations:
     - kind: fixed
       description: Validate Ingress and ServiceMonitor dependencies on Service rendering
     - kind: fixed
+      description: Validate Helm test servicePortName against configured Service ports
+    - kind: fixed
+      description: Show zero-value PodDisruptionBudget fields in Helm NOTES output
+    - kind: fixed
       description: Handle zero-value fields (backoffLimit=0, revisionHistoryLimit=0)
     - kind: added
       description: Container lifecycle hooks (preStop, postStart)

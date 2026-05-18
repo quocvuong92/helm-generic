@@ -2,6 +2,7 @@
 set -euo pipefail
 
 chart_dir="${1:-.}"
+notes_file="$chart_dir/templates/NOTES.txt"
 
 valid_values=(
   "ci/minimal-values.yaml"
@@ -24,6 +25,18 @@ for values_file in "${valid_values[@]}"; do
   helm lint "$chart_dir" -f "$values_file"
   helm template review "$chart_dir" -f "$values_file" >/dev/null
 done
+
+if [[ -f "$notes_file" ]]; then
+  if ! grep -q 'generic.hasValue.*minAvailable' "$notes_file"; then
+    echo "NOTES.txt must render podDisruptionBudget.minAvailable when the value is 0" >&2
+    exit 1
+  fi
+
+  if ! grep -q 'generic.hasValue.*maxUnavailable' "$notes_file"; then
+    echo "NOTES.txt must render podDisruptionBudget.maxUnavailable when the value is 0" >&2
+    exit 1
+  fi
+fi
 
 if compgen -G "ci/invalid/*.yaml" >/dev/null; then
   for values_file in ci/invalid/*.yaml; do

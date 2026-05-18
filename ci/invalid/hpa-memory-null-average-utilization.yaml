@@ -1,0 +1,9 @@
+autoscaling:
+  enabled: true
+  metrics:
+    cpu:
+      enabled: false
+    memory:
+      enabled: true
+      averageUtilization: null
+    custom: []

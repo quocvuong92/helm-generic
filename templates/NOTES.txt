@@ -74,10 +74,11 @@ Prometheus Metrics:
 {{- if .Values.podDisruptionBudget.enabled }}
 
 Pod Disruption Budget:
-{{- if .Values.podDisruptionBudget.minAvailable }}
+{{- $pdb := .Values.podDisruptionBudget }}
+{{- if include "generic.hasValue" (dict "map" $pdb "key" "minAvailable") }}
   Min Available: {{ .Values.podDisruptionBudget.minAvailable }}
 {{- end }}
-{{- if .Values.podDisruptionBudget.maxUnavailable }}
+{{- if include "generic.hasValue" (dict "map" $pdb "key" "maxUnavailable") }}
   Max Unavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
 {{- end }}
 {{- end }}

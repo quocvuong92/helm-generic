@@ -1,5 +1,6 @@
 {{- if and .Values.tests.enabled .Values.service.enabled (ne (include "generic.workloadType" .) "cronjob") }}
 {{- include "generic.validateService" . }}
+{{- include "generic.validateTests" . }}
 {{- $servicePort := index .Values.service.ports 0 }}
 {{- $port := $servicePort.port }}
 {{- if .Values.tests.servicePortName }}

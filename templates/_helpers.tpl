@@ -117,6 +117,12 @@ HPA is only valid for deployment and statefulset.
 {{- if not (or $hasCPU $hasMemory $hasCustom) }}
 {{- fail "autoscaling.enabled requires at least one enabled metric: cpu, memory, or autoscaling.metrics.custom." }}
 {{- end }}
+{{- if and $hasCPU (not (include "generic.hasValue" (dict "map" $cpu "key" "averageUtilization"))) }}
+{{- fail "autoscaling.metrics.cpu.averageUtilization is required when autoscaling.metrics.cpu.enabled is true." }}
+{{- end }}
+{{- if and $hasMemory (not (include "generic.hasValue" (dict "map" $memory "key" "averageUtilization"))) }}
+{{- fail "autoscaling.metrics.memory.averageUtilization is required when autoscaling.metrics.memory.enabled is true." }}
+{{- end }}
 {{- end }}
 {{- end }}
 
@@ -205,6 +211,25 @@ Validate Service configuration.
 {{- if eq .Values.service.type "ExternalName" }}
 {{- if not .Values.service.externalName }}
 {{- fail "service.type ExternalName requires service.externalName." }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Validate Helm test configuration.
+*/}}
+{{- define "generic.validateTests" -}}
+{{- if and .Values.tests.enabled .Values.service.enabled (ne (include "generic.workloadType" .) "cronjob") }}
+{{- if and (not .Values.tests.args) .Values.tests.servicePortName }}
+{{- $found := false }}
+{{- range .Values.service.ports }}
+{{- if eq .name $.Values.tests.servicePortName }}
+{{- $found = true }}
+{{- end }}
+{{- end }}
+{{- if not $found }}
+{{- fail (printf "tests.servicePortName '%s' must match one of service.ports[].name." .Values.tests.servicePortName) }}
 {{- end }}
 {{- end }}
 {{- end }}
