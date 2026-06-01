@@ -308,7 +308,7 @@ rbac:
 | globalAnnotations | object | `{}` | Global annotations added to ALL resources |
 | image.pullPolicy | string | `"IfNotPresent"` | Image pull policy: Always, IfNotPresent, or Never |
 | image.repository | string | `"nginx"` | Container image repository |
-| image.tag | string | `""` | Container image tag (defaults to Chart.appVersion if empty) |
+| image.tag | string | `"1.30.1"` | Container image tag |
 | imagePullSecrets | list | `[]` | Image pull secrets for private registries |
 | ingress.annotations | object | `{}` | Ingress annotations |
 | ingress.className | string | `""` | Ingress class name |
