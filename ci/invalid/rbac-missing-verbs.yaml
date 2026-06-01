@@ -1,0 +1,7 @@
+rbac:
+  roles:
+    - name: test-role
+      rules:
+        - apiGroups: [""]
+          resources: ["pods"]
+          # verbs is missing - should fail validation

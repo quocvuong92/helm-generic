@@ -1,3 +1,4 @@
+{{- include "generic.validateRBAC" . }}
 {{- $fullName := include "generic.fullname" . }}
 {{- $saName := include "generic.serviceAccountName" . }}
 {{- $releaseNamespace := .Release.Namespace }}

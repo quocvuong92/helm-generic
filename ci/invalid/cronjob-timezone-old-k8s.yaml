@@ -1,0 +1,5 @@
+workload:
+  type: cronjob
+  cronjob:
+    timeZone: "America/New_York"
+# timeZone requires K8s 1.27+ - should fail on older versions

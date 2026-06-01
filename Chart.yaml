@@ -2,7 +2,7 @@ apiVersion: v2
 name: generic
 description: A flexible, generic Helm chart for deploying any containerized application to Kubernetes
 type: application
-version: 2.1.0
+version: 2.2.0
 appVersion: "2.0.0"
 kubeVersion: ">=1.23.0-0"
 maintainers:
@@ -23,45 +23,15 @@ sources:
 annotations:
   artifacthub.io/changes: |
     - kind: fixed
-      description: Fix configFiles/secretFiles name collision using name field as data key
+      description: Set pullable nginx default image tag
     - kind: fixed
-      description: Auto-skip Service creation for CronJob workloads
+      description: Reject invalid string values for optional integer workload fields
     - kind: fixed
-      description: Validate against storage.enabled with StatefulSet (use volumeClaimTemplates instead)
+      description: Render pod terminationGracePeriodSeconds when set to 0
     - kind: fixed
-      description: Render ExternalName Services with externalName and required validation
+      description: Validate RBAC rules before rendering
     - kind: fixed
-      description: Prevent pod selector labels from being overridden by custom labels
-    - kind: fixed
-      description: Render HPA metrics safely when CPU or memory targets are null
-    - kind: fixed
-      description: Validate HPA min/max replica and empty/null metric edge cases
-    - kind: fixed
-      description: Validate PDB minAvailable/maxUnavailable mutual exclusion and zero values
-    - kind: fixed
-      description: Validate Ingress and ServiceMonitor dependencies on Service rendering
-    - kind: fixed
-      description: Validate Helm test servicePortName against configured Service ports
-    - kind: fixed
-      description: Show zero-value PodDisruptionBudget fields in Helm NOTES output
-    - kind: fixed
-      description: Handle zero-value fields (backoffLimit=0, revisionHistoryLimit=0)
+      description: Gate CronJob timeZone to Kubernetes 1.27+
     - kind: added
-      description: Container lifecycle hooks (preStop, postStart)
-    - kind: added
-      description: Pod features - priorityClassName, hostNetwork, hostPID, hostIPC, runtimeClassName, shareProcessNamespace
-    - kind: added
-      description: Headless Service support via service.clusterIP
-    - kind: added
-      description: revisionHistoryLimit and minReadySeconds for Deployment/StatefulSet/DaemonSet
-    - kind: added
-      description: CronJob backoffLimit and activeDeadlineSeconds
-    - kind: added
-      description: Cross-resource validations (Ingress requires Service, PDB mutual exclusion)
-    - kind: added
-      description: Configurable generic Helm test connectivity template
-    - kind: added
-      description: Block storage volumeDevices support with devicePath validation
-    - kind: security
-      description: Default automountServiceAccountToken to false
+      description: Validation fixtures for RBAC, CronJob timezone, integer fields, and zero values
   artifacthub.io/license: MIT

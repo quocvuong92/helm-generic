@@ -236,6 +236,38 @@ Validate Helm test configuration.
 {{- end }}
 
 {{/*
+Validate RBAC configuration.
+*/}}
+{{- define "generic.validateRBAC" -}}
+{{- range $idx, $role := .Values.rbac.roles }}
+{{- if not $role.rules }}
+{{- fail (printf "rbac.roles[%d] (%s) is missing required field 'rules'." $idx $role.name) }}
+{{- end }}
+{{- if eq (len $role.rules) 0 }}
+{{- fail (printf "rbac.roles[%d] (%s) has empty 'rules' - at least one rule is required." $idx $role.name) }}
+{{- end }}
+{{- range $ruleIdx, $rule := $role.rules }}
+{{- if not $rule.verbs }}
+{{- fail (printf "rbac.roles[%d].rules[%d] is missing required field 'verbs'." $idx $ruleIdx) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if .Values.rbac.clusterRole.enabled }}
+{{- if not .Values.rbac.clusterRole.rules }}
+{{- fail "rbac.clusterRole is enabled but missing required field 'rules'." }}
+{{- end }}
+{{- if eq (len .Values.rbac.clusterRole.rules) 0 }}
+{{- fail "rbac.clusterRole is enabled but has empty 'rules' - at least one rule is required." }}
+{{- end }}
+{{- range $ruleIdx, $rule := .Values.rbac.clusterRole.rules }}
+{{- if not $rule.verbs }}
+{{- fail (printf "rbac.clusterRole.rules[%d] is missing required field 'verbs'." $ruleIdx) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
 ==============================================================================
 MODULE 3: METADATA (LABELS & ANNOTATIONS)
 ==============================================================================

@@ -5,7 +5,7 @@
 # generic
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-2.1.0-informational?style=flat-square" alt="Version: 2.1.0">
+  <img src="https://img.shields.io/badge/Version-2.2.0-informational?style=flat-square" alt="Version: 2.2.0">
   <img src="https://img.shields.io/badge/Type-application-informational?style=flat-square" alt="Type: application">
   <img src="https://img.shields.io/badge/AppVersion-2.0.0-informational?style=flat-square" alt="AppVersion: 2.0.0">
 </p>
@@ -434,6 +434,9 @@ The chart validates configurations and fails with clear error messages:
 | `storage.volumeMode: Block` | `storage.devicePath` is required |
 | Ingress enabled | Requires a rendered Service (`service.enabled: true` and non-CronJob workload) |
 | ServiceMonitor enabled | Requires a rendered Service (`service.enabled: true` and non-CronJob workload) |
+| RBAC role with empty/missing rules | `rbac.roles[].rules` and `rbac.clusterRole.rules` must have at least one rule |
+| RBAC rule missing verbs | Each rule in `rbac.roles[].rules` or `rbac.clusterRole.rules` must specify `verbs` |
+| CronJob timeZone on old K8s | `workload.cronjob.timeZone` requires Kubernetes >= 1.27 |
 
 ## Helm Tests
 
