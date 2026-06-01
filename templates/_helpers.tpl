@@ -607,8 +607,8 @@ hostIPC: true
 {{- if .Values.pod.shareProcessNamespace }}
 shareProcessNamespace: true
 {{- end }}
-{{- with .Values.pod.terminationGracePeriodSeconds }}
-terminationGracePeriodSeconds: {{ . }}
+{{- if not (kindIs "invalid" .Values.pod.terminationGracePeriodSeconds) }}
+terminationGracePeriodSeconds: {{ .Values.pod.terminationGracePeriodSeconds }}
 {{- end }}
 {{- with .Values.pod.dnsPolicy }}
 dnsPolicy: {{ . }}
