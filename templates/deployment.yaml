@@ -1,4 +1,5 @@
 {{- if eq (include "generic.workloadType" .) "deployment" }}
+{{- include "generic.validatePodLabels" . }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:

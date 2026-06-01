@@ -77,6 +77,24 @@ Usage: {{ include "generic.isWorkloadType" (dict "context" . "type" "deployment"
 {{- end }}
 
 {{/*
+Check whether a map has a non-null value for a key.
+*/}}
+{{- define "generic.hasValue" -}}
+{{- if and (hasKey .map .key) (ne (toString (get .map .key)) "<nil>") }}true{{- end }}
+{{- end }}
+
+{{- define "generic.validatePodLabels" -}}
+{{- with .Values.pod.labels }}
+{{- if hasKey . "app.kubernetes.io/name" }}
+{{- fail "pod.labels cannot override selector label 'app.kubernetes.io/name'." }}
+{{- end }}
+{{- if hasKey . "app.kubernetes.io/instance" }}
+{{- fail "pod.labels cannot override selector label 'app.kubernetes.io/instance'." }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
 Validate HPA configuration.
 HPA is only valid for deployment and statefulset.
 */}}
@@ -85,6 +103,25 @@ HPA is only valid for deployment and statefulset.
 {{- $type := include "generic.workloadType" . }}
 {{- if or (eq $type "daemonset") (eq $type "cronjob") }}
 {{- fail (printf "autoscaling.enabled cannot be used with workload.type '%s'. HPA only supports deployment and statefulset." $type) }}
+{{- end }}
+{{- if gt (int .Values.autoscaling.minReplicas) (int .Values.autoscaling.maxReplicas) }}
+{{- fail "autoscaling.minReplicas cannot be greater than autoscaling.maxReplicas." }}
+{{- end }}
+{{- $metrics := default dict .Values.autoscaling.metrics }}
+{{- $cpu := default dict (get $metrics "cpu") }}
+{{- $memory := default dict (get $metrics "memory") }}
+{{- $custom := default list (get $metrics "custom") }}
+{{- $hasCPU := and (hasKey $cpu "enabled") (get $cpu "enabled") }}
+{{- $hasMemory := and (hasKey $memory "enabled") (get $memory "enabled") }}
+{{- $hasCustom := gt (len $custom) 0 }}
+{{- if not (or $hasCPU $hasMemory $hasCustom) }}
+{{- fail "autoscaling.enabled requires at least one enabled metric: cpu, memory, or autoscaling.metrics.custom." }}
+{{- end }}
+{{- if and $hasCPU (not (include "generic.hasValue" (dict "map" $cpu "key" "averageUtilization"))) }}
+{{- fail "autoscaling.metrics.cpu.averageUtilization is required when autoscaling.metrics.cpu.enabled is true." }}
+{{- end }}
+{{- if and $hasMemory (not (include "generic.hasValue" (dict "map" $memory "key" "averageUtilization"))) }}
+{{- fail "autoscaling.metrics.memory.averageUtilization is required when autoscaling.metrics.memory.enabled is true." }}
 {{- end }}
 {{- end }}
 {{- end }}
@@ -99,8 +136,14 @@ PDB is not valid for cronjob.
 {{- if eq $type "cronjob" }}
 {{- fail "podDisruptionBudget.enabled cannot be used with workload.type 'cronjob'." }}
 {{- end }}
-{{- if and .Values.podDisruptionBudget.minAvailable .Values.podDisruptionBudget.maxUnavailable }}
+{{- $pdb := .Values.podDisruptionBudget }}
+{{- $hasMin := include "generic.hasValue" (dict "map" $pdb "key" "minAvailable") }}
+{{- $hasMax := include "generic.hasValue" (dict "map" $pdb "key" "maxUnavailable") }}
+{{- if and $hasMin $hasMax }}
 {{- fail "podDisruptionBudget: set only ONE of minAvailable or maxUnavailable, not both." }}
+{{- end }}
+{{- if not (or $hasMin $hasMax) }}
+{{- fail "podDisruptionBudget.enabled requires minAvailable or maxUnavailable." }}
 {{- end }}
 {{- end }}
 {{- end }}
@@ -113,14 +156,114 @@ storage.enabled creates a standalone PVC which conflicts with StatefulSet's volu
 {{- if and .Values.storage.enabled (eq (include "generic.workloadType" .) "statefulset") }}
 {{- fail "storage.enabled creates a standalone PVC which is not recommended with StatefulSets. Use workload.statefulset.volumeClaimTemplates instead for per-pod storage." }}
 {{- end }}
+{{- if and .Values.storage.enabled (eq .Values.storage.volumeMode "Block") (not .Values.storage.devicePath) }}
+{{- fail "storage.volumeMode Block requires storage.devicePath." }}
+{{- end }}
 {{- end }}
 
 {{/*
-Validate Ingress requires Service.
+Validate Ingress dependencies.
 */}}
 {{- define "generic.validateIngress" -}}
-{{- if and .Values.ingress.enabled (not .Values.service.enabled) }}
+{{- if .Values.ingress.enabled }}
+{{- if eq (include "generic.workloadType" .) "cronjob" }}
+{{- fail "ingress.enabled cannot be used with workload.type 'cronjob' because CronJobs do not render a Service." }}
+{{- end }}
+{{- if not .Values.service.enabled }}
 {{- fail "ingress.enabled requires service.enabled to be true." }}
+{{- end }}
+{{- if not .Values.ingress.hosts }}
+{{- fail "ingress.enabled requires at least one ingress.hosts entry." }}
+{{- end }}
+{{- range .Values.ingress.hosts }}
+{{- if not .paths }}
+{{- fail (printf "ingress host '%s' requires at least one path." .host) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Validate ServiceMonitor dependencies.
+*/}}
+{{- define "generic.validateServiceMonitor" -}}
+{{- if .Values.serviceMonitor.enabled }}
+{{- if eq (include "generic.workloadType" .) "cronjob" }}
+{{- fail "serviceMonitor.enabled cannot be used with workload.type 'cronjob' because CronJobs do not render a Service." }}
+{{- end }}
+{{- if not .Values.service.enabled }}
+{{- fail "serviceMonitor.enabled requires service.enabled to be true." }}
+{{- end }}
+{{- if and (not .Values.serviceMonitor.endpoints) (not .Values.service.ports) }}
+{{- fail "serviceMonitor.enabled requires service.ports or serviceMonitor.endpoints." }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Validate Service configuration.
+*/}}
+{{- define "generic.validateService" -}}
+{{- if and .Values.service.enabled (ne (include "generic.workloadType" .) "cronjob") }}
+{{- if not .Values.service.ports }}
+{{- fail "service.enabled requires at least one service.ports entry." }}
+{{- end }}
+{{- if eq .Values.service.type "ExternalName" }}
+{{- if not .Values.service.externalName }}
+{{- fail "service.type ExternalName requires service.externalName." }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Validate Helm test configuration.
+*/}}
+{{- define "generic.validateTests" -}}
+{{- if and .Values.tests.enabled .Values.service.enabled (ne (include "generic.workloadType" .) "cronjob") }}
+{{- if and (not .Values.tests.args) .Values.tests.servicePortName }}
+{{- $found := false }}
+{{- range .Values.service.ports }}
+{{- if eq .name $.Values.tests.servicePortName }}
+{{- $found = true }}
+{{- end }}
+{{- end }}
+{{- if not $found }}
+{{- fail (printf "tests.servicePortName '%s' must match one of service.ports[].name." .Values.tests.servicePortName) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Validate RBAC configuration.
+*/}}
+{{- define "generic.validateRBAC" -}}
+{{- range $idx, $role := .Values.rbac.roles }}
+{{- if not $role.rules }}
+{{- fail (printf "rbac.roles[%d] (%s) is missing required field 'rules'." $idx $role.name) }}
+{{- end }}
+{{- if eq (len $role.rules) 0 }}
+{{- fail (printf "rbac.roles[%d] (%s) has empty 'rules' - at least one rule is required." $idx $role.name) }}
+{{- end }}
+{{- range $ruleIdx, $rule := $role.rules }}
+{{- if not $rule.verbs }}
+{{- fail (printf "rbac.roles[%d].rules[%d] is missing required field 'verbs'." $idx $ruleIdx) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if .Values.rbac.clusterRole.enabled }}
+{{- if not .Values.rbac.clusterRole.rules }}
+{{- fail "rbac.clusterRole is enabled but missing required field 'rules'." }}
+{{- end }}
+{{- if eq (len .Values.rbac.clusterRole.rules) 0 }}
+{{- fail "rbac.clusterRole is enabled but has empty 'rules' - at least one rule is required." }}
+{{- end }}
+{{- range $ruleIdx, $rule := .Values.rbac.clusterRole.rules }}
+{{- if not $rule.verbs }}
+{{- fail (printf "rbac.clusterRole.rules[%d] is missing required field 'verbs'." $ruleIdx) }}
+{{- end }}
+{{- end }}
 {{- end }}
 {{- end }}
 
@@ -286,7 +429,7 @@ MODULE 8: VOLUMES & VOLUME MOUNTS
 Generate volume mounts for main container.
 */}}
 {{- define "generic.volumeMounts" -}}
-{{- if .Values.storage.enabled }}
+{{- if and .Values.storage.enabled (ne .Values.storage.volumeMode "Block") }}
 - name: storage
   mountPath: {{ .Values.storage.mountPath }}
   {{- with .Values.storage.subPath }}
@@ -310,6 +453,19 @@ Generate volume mounts for main container.
   subPath: {{ .name }}
 {{- end }}
 {{- with .Values.pod.volumeMounts }}
+{{ toYaml . }}
+{{- end }}
+{{- end }}
+
+{{/*
+Generate volume devices for main container.
+*/}}
+{{- define "generic.volumeDevices" -}}
+{{- if and .Values.storage.enabled (eq .Values.storage.volumeMode "Block") }}
+- name: storage
+  devicePath: {{ .Values.storage.devicePath }}
+{{- end }}
+{{- with .Values.pod.volumeDevices }}
 {{ toYaml . }}
 {{- end }}
 {{- end }}
@@ -442,6 +598,11 @@ Generate the main container specification.
   volumeMounts:
     {{- $volumeMounts | nindent 4 }}
   {{- end }}
+  {{- $volumeDevices := include "generic.volumeDevices" . }}
+  {{- if $volumeDevices }}
+  volumeDevices:
+    {{- $volumeDevices | nindent 4 }}
+  {{- end }}
 {{- end }}
 
 {{/*
@@ -478,8 +639,8 @@ hostIPC: true
 {{- if .Values.pod.shareProcessNamespace }}
 shareProcessNamespace: true
 {{- end }}
-{{- with .Values.pod.terminationGracePeriodSeconds }}
-terminationGracePeriodSeconds: {{ . }}
+{{- if not (kindIs "invalid" .Values.pod.terminationGracePeriodSeconds) }}
+terminationGracePeriodSeconds: {{ .Values.pod.terminationGracePeriodSeconds }}
 {{- end }}
 {{- with .Values.pod.dnsPolicy }}
 dnsPolicy: {{ . }}

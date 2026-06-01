@@ -1,0 +1,5 @@
+rbac:
+  roles:
+    - name: test-role
+      rules: []
+      # empty rules array - should fail validation

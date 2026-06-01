@@ -1,4 +1,5 @@
 {{- if and .Values.service.enabled (ne (include "generic.workloadType" .) "cronjob") }}
+{{- include "generic.validateService" . }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -8,8 +9,12 @@ metadata:
   {{- include "generic.renderAnnotations" (dict "global" . "local" .Values.service.annotations) | nindent 2 }}
 spec:
   type: {{ .Values.service.type }}
+  {{- if eq .Values.service.type "ExternalName" }}
+  externalName: {{ .Values.service.externalName }}
+  {{- else }}
   {{- with .Values.service.clusterIP }}
   clusterIP: {{ . }}
+  {{- end }}
   {{- end }}
   ports:
     {{- range .Values.service.ports }}
@@ -24,6 +29,8 @@ spec:
       nodePort: {{ . }}
       {{- end }}
     {{- end }}
+  {{- if ne .Values.service.type "ExternalName" }}
   selector:
     {{- include "generic.selectorLabels" . | nindent 4 }}
+  {{- end }}
 {{- end }}

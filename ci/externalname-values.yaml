@@ -1,0 +1,11 @@
+service:
+  enabled: true
+  type: ExternalName
+  externalName: api.example.com
+  ports:
+    - name: https
+      port: 443
+      targetPort: 443
+
+tests:
+  enabled: false

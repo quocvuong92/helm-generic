@@ -5,7 +5,7 @@
 # generic
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-2.0.0-informational?style=flat-square" alt="Version: 2.0.0">
+  <img src="https://img.shields.io/badge/Version-2.2.0-informational?style=flat-square" alt="Version: 2.2.0">
   <img src="https://img.shields.io/badge/Type-application-informational?style=flat-square" alt="Type: application">
   <img src="https://img.shields.io/badge/AppVersion-2.0.0-informational?style=flat-square" alt="AppVersion: 2.0.0">
 </p>
@@ -308,13 +308,14 @@ rbac:
 | globalAnnotations | object | `{}` | Global annotations added to ALL resources |
 | image.pullPolicy | string | `"IfNotPresent"` | Image pull policy: Always, IfNotPresent, or Never |
 | image.repository | string | `"nginx"` | Container image repository |
-| image.tag | string | `""` | Container image tag (defaults to Chart.appVersion if empty) |
+| image.tag | string | `"1.30.1"` | Container image tag |
 | imagePullSecrets | list | `[]` | Image pull secrets for private registries |
 | ingress.annotations | object | `{}` | Ingress annotations |
 | ingress.className | string | `""` | Ingress class name |
 | ingress.enabled | bool | `false` | Enable Ingress |
 | ingress.hosts | list | `[]` | Ingress hosts configuration |
 | ingress.tls | list | `[]` | TLS configuration |
+| lifecycle | object | `{}` | Container lifecycle hooks (preStop, postStart) |
 | livenessProbe | object | `{}` | Liveness probe configuration |
 | nameOverride | string | `""` | Override chart name in resource names |
 | networkPolicy.annotations | object | `{}` | NetworkPolicy annotations |
@@ -326,14 +327,21 @@ rbac:
 | pod.annotations | object | `{}` | Additional annotations for pods |
 | pod.dnsConfig | object | `{}` | Custom DNS configuration |
 | pod.dnsPolicy | string | `"ClusterFirst"` | DNS policy: ClusterFirst, ClusterFirstWithHostNet, Default, or None |
+| pod.hostIPC | bool | `false` | Use the host's IPC namespace |
+| pod.hostNetwork | bool | `false` | Use the host's network namespace |
+| pod.hostPID | bool | `false` | Use the host's PID namespace |
 | pod.initContainers | list | `[]` | Init containers to run before main container |
 | pod.labels | object | `{}` | Additional labels for pods |
 | pod.nodeSelector | object | `{}` | Node selector for pod scheduling |
+| pod.priorityClassName | string | `""` | Priority class for pod scheduling |
+| pod.runtimeClassName | string | `""` | Runtime class name (e.g., gvisor, kata) |
 | pod.securityContext | object | `{}` | Pod-level security context |
+| pod.shareProcessNamespace | bool | `false` | Share process namespace between containers |
 | pod.sidecars | list | `[]` | Sidecar containers running alongside main container |
 | pod.terminationGracePeriodSeconds | int | `30` | Termination grace period in seconds |
 | pod.tolerations | list | `[]` | Tolerations for pod scheduling |
 | pod.topologySpreadConstraints | list | `[]` | Topology spread constraints |
+| pod.volumeDevices | list | `[]` | Additional volume devices for main container |
 | pod.volumeMounts | list | `[]` | Additional volume mounts for main container |
 | pod.volumes | list | `[]` | Additional volumes (beyond configFiles/secretFiles/storage) |
 | podDisruptionBudget.annotations | object | `{}` | PDB annotations |
@@ -353,11 +361,13 @@ rbac:
 | secretFilesMode | int | `416` | File mode for mounted secret files (octal) |
 | securityContext | object | `{}` | Security context for the main container |
 | service.annotations | object | `{}` | Service annotations |
+| service.clusterIP | string | `""` | Cluster IP (set to "None" for headless service, commonly used with StatefulSets) |
 | service.enabled | bool | `true` | Enable Service creation |
+| service.externalName | string | `""` | External DNS name when service.type is ExternalName |
 | service.ports | list | `[{"name":"http","port":80,"protocol":"TCP","targetPort":80}]` | Service ports configuration |
 | service.type | string | `"ClusterIP"` | Service type: ClusterIP, NodePort, LoadBalancer, or ExternalName |
 | serviceAccount.annotations | object | `{}` | Annotations for the service account (e.g., for IAM roles) |
-| serviceAccount.automountServiceAccountToken | bool | `true` | Automount API credentials into pods |
+| serviceAccount.automountServiceAccountToken | bool | `false` | Automount API credentials into pods |
 | serviceAccount.create | bool | `true` | Create a service account |
 | serviceAccount.name | string | `""` | Service account name (defaults to fullname if empty) |
 | serviceMonitor.annotations | object | `{}` | ServiceMonitor annotations |
@@ -370,6 +380,7 @@ rbac:
 | startupProbe | object | `{}` | Startup probe configuration |
 | storage.accessModes | list | `["ReadWriteOnce"]` | Access modes for PVC |
 | storage.annotations | object | `{}` | PVC annotations |
+| storage.devicePath | string | `""` | Device path in container when volumeMode is Block |
 | storage.enabled | bool | `false` | Enable persistent storage (creates PVC) |
 | storage.mountPath | string | `"/data"` | Mount path in container |
 | storage.name | string | `""` | PVC name (defaults to fullname-storage if empty) |
@@ -379,18 +390,30 @@ rbac:
 | storage.storageClassName | string | `""` | Storage class name (empty = default) |
 | storage.subPath | string | `""` | SubPath within the volume to mount |
 | storage.volumeMode | string | `"Filesystem"` | Volume mode: Filesystem or Block |
-| workload.cronjob | object | `{"concurrencyPolicy":"Forbid","failedJobsHistoryLimit":1,"restartPolicy":"OnFailure","schedule":"0 * * * *","successfulJobsHistoryLimit":3,"timeZone":""}` | CronJob-specific settings (only used when type: cronjob) |
+| tests.args | list | `[]` | Override test args |
+| tests.command | list | `[]` | Override test command |
+| tests.enabled | bool | `true` | Enable Helm test pod for Service connectivity |
+| tests.image | string | `"busybox:1.36"` | Test image |
+| tests.servicePortName | string | `""` | Service port name to test (defaults to first service port) |
+| workload.cronjob | object | `{"activeDeadlineSeconds":"","backoffLimit":6,"concurrencyPolicy":"Forbid","failedJobsHistoryLimit":1,"restartPolicy":"OnFailure","schedule":"0 * * * *","successfulJobsHistoryLimit":3,"timeZone":""}` | CronJob-specific settings (only used when type: cronjob) |
+| workload.cronjob.activeDeadlineSeconds | string | `""` | Maximum time in seconds for the job to run |
+| workload.cronjob.backoffLimit | int | `6` | Number of retries before marking the job as failed |
 | workload.cronjob.concurrencyPolicy | string | `"Forbid"` | Concurrency policy: Allow, Forbid, or Replace |
 | workload.cronjob.failedJobsHistoryLimit | int | `1` | Number of failed jobs to retain |
 | workload.cronjob.restartPolicy | string | `"OnFailure"` | Restart policy for pods: OnFailure or Never |
 | workload.cronjob.schedule | string | `"0 * * * *"` | Cron schedule expression |
 | workload.cronjob.successfulJobsHistoryLimit | int | `3` | Number of successful jobs to retain |
 | workload.cronjob.timeZone | string | `""` | Timezone for schedule (requires K8s >= 1.27) |
-| workload.daemonset | object | `{"updateStrategy":{"rollingUpdate":{"maxUnavailable":1},"type":"RollingUpdate"}}` | DaemonSet-specific settings (only used when type: daemonset) |
+| workload.daemonset | object | `{"minReadySeconds":"","revisionHistoryLimit":"","updateStrategy":{"rollingUpdate":{"maxUnavailable":1},"type":"RollingUpdate"}}` | DaemonSet-specific settings (only used when type: daemonset) |
+| workload.daemonset.minReadySeconds | string | `""` | Minimum seconds a pod must be ready before considered available |
+| workload.daemonset.revisionHistoryLimit | string | `""` | Number of old DaemonSet revisions to retain |
 | workload.daemonset.updateStrategy | object | `{"rollingUpdate":{"maxUnavailable":1},"type":"RollingUpdate"}` | Update strategy for DaemonSet |
-| workload.deployment | object | `{"strategy":{"rollingUpdate":{"maxSurge":"25%","maxUnavailable":"25%"},"type":"RollingUpdate"}}` | Deployment-specific settings (only used when type: deployment) |
+| workload.deployment | object | `{"minReadySeconds":"","revisionHistoryLimit":"","strategy":{"rollingUpdate":{"maxSurge":"25%","maxUnavailable":"25%"},"type":"RollingUpdate"}}` | Deployment-specific settings (only used when type: deployment) |
+| workload.deployment.minReadySeconds | string | `""` | Minimum seconds a pod must be ready before considered available |
+| workload.deployment.revisionHistoryLimit | string | `""` | Number of old ReplicaSets to retain |
 | workload.replicas | int | `1` | Number of replicas (ignored for daemonset and cronjob) |
-| workload.statefulset | object | `{"podManagementPolicy":"OrderedReady","serviceName":"","updateStrategy":{"type":"RollingUpdate"},"volumeClaimTemplates":[]}` | StatefulSet-specific settings (only used when type: statefulset) |
+| workload.statefulset | object | `{"minReadySeconds":"","podManagementPolicy":"OrderedReady","serviceName":"","updateStrategy":{"type":"RollingUpdate"},"volumeClaimTemplates":[]}` | StatefulSet-specific settings (only used when type: statefulset) |
+| workload.statefulset.minReadySeconds | string | `""` | Minimum seconds a pod must be ready before considered available |
 | workload.statefulset.podManagementPolicy | string | `"OrderedReady"` | Pod management policy: OrderedReady or Parallel |
 | workload.statefulset.serviceName | string | `""` | Service name for StatefulSet (defaults to fullname if empty) |
 | workload.statefulset.updateStrategy | object | `{"type":"RollingUpdate"}` | Update strategy for StatefulSet |
@@ -406,6 +429,18 @@ The chart validates configurations and fails with clear error messages:
 | Invalid `workload.type` | Must be: deployment, statefulset, daemonset, cronjob |
 | HPA with daemonset/cronjob | HPA only supports deployment and statefulset |
 | PDB with cronjob | PDB cannot be used with cronjob |
+| PDB with `maxUnavailable` | Set `minAvailable: null` when using `maxUnavailable` |
+| `service.type: ExternalName` | `service.externalName` is required |
+| `storage.volumeMode: Block` | `storage.devicePath` is required |
+| Ingress enabled | Requires a rendered Service (`service.enabled: true` and non-CronJob workload) |
+| ServiceMonitor enabled | Requires a rendered Service (`service.enabled: true` and non-CronJob workload) |
+| RBAC role with empty/missing rules | `rbac.roles[].rules` and `rbac.clusterRole.rules` must have at least one rule |
+| RBAC rule missing verbs | Each rule in `rbac.roles[].rules` or `rbac.clusterRole.rules` must specify `verbs` |
+| CronJob timeZone on old K8s | `workload.cronjob.timeZone` requires Kubernetes >= 1.27 |
+
+## Helm Tests
+
+The default Helm test uses TCP connectivity through the rendered Service. Set `tests.servicePortName` to target a named Service port, or override `tests.command` and `tests.args` for custom checks.
 
 ## Maintainers
 

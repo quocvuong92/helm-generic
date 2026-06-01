@@ -1,4 +1,5 @@
 {{- if eq (include "generic.workloadType" .) "cronjob" }}
+{{- include "generic.validatePodLabels" . }}
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -9,7 +10,11 @@ metadata:
 spec:
   schedule: {{ .Values.workload.cronjob.schedule | quote }}
   {{- with .Values.workload.cronjob.timeZone }}
+  {{- if semverCompare ">=1.27.0-0" $.Capabilities.KubeVersion.Version }}
   timeZone: {{ . | quote }}
+  {{- else }}
+  {{- fail (printf "CronJob timeZone requires Kubernetes 1.27+, but target cluster is %s. Remove workload.cronjob.timeZone or upgrade the cluster." $.Capabilities.KubeVersion.Version) }}
+  {{- end }}
   {{- end }}
   concurrencyPolicy: {{ .Values.workload.cronjob.concurrencyPolicy }}
   successfulJobsHistoryLimit: {{ .Values.workload.cronjob.successfulJobsHistoryLimit }}

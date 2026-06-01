@@ -2,7 +2,7 @@ apiVersion: v2
 name: generic
 description: A flexible, generic Helm chart for deploying any containerized application to Kubernetes
 type: application
-version: 2.1.0
+version: 2.2.0
 appVersion: "2.0.0"
 kubeVersion: ">=1.23.0-0"
 maintainers:
@@ -22,22 +22,16 @@ sources:
   - https://github.com/quocvuong92/helm-generic
 annotations:
   artifacthub.io/changes: |
-    - kind: changed
-      description: Complete redesign with cleaner values structure
-    - kind: changed
-      description: Explicit workload.type selection (deployment/statefulset/daemonset/cronjob)
+    - kind: fixed
+      description: Set pullable nginx default image tag
+    - kind: fixed
+      description: Reject invalid string values for optional integer workload fields
+    - kind: fixed
+      description: Render pod terminationGracePeriodSeconds when set to 0
+    - kind: fixed
+      description: Validate RBAC rules before rendering
+    - kind: fixed
+      description: Gate CronJob timeZone to Kubernetes 1.27+
     - kind: added
-      description: Validation for workload type conflicts
-    - kind: added
-      description: Consistent labels and annotations across all resources
-    - kind: changed
-      description: Renamed mountConfig/mountSecret to configFiles/secretFiles
-    - kind: changed
-      description: Moved pod.containers to pod.sidecars for clarity
-    - kind: changed
-      description: Restructured autoscaling.metrics for better organization
-    - kind: added
-      description: Support for multiple RBAC roles across namespaces
-    - kind: removed
-      description: Removed deprecated storage.requests.storage field
+      description: Validation fixtures for RBAC, CronJob timezone, integer fields, and zero values
   artifacthub.io/license: MIT

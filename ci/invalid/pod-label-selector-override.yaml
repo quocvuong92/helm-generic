@@ -1,0 +1,3 @@
+pod:
+  labels:
+    app.kubernetes.io/name: wrong-name

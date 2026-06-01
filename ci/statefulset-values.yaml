@@ -52,6 +52,7 @@ pod:
 service:
   enabled: true
   type: ClusterIP
+  clusterIP: None
   ports:
     - name: postgres
       port: 5432

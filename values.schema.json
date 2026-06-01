@@ -27,14 +27,14 @@
             "revisionHistoryLimit": {
               "oneOf": [
                 { "type": "integer", "minimum": 0 },
-                { "type": "string" }
+                { "type": "string", "const": "" }
               ],
               "description": "Number of old ReplicaSets to retain"
             },
             "minReadySeconds": {
               "oneOf": [
                 { "type": "integer", "minimum": 0 },
-                { "type": "string" }
+                { "type": "string", "const": "" }
               ],
               "description": "Minimum seconds a pod should be ready before considered available"
             },
@@ -73,7 +73,7 @@
             "minReadySeconds": {
               "oneOf": [
                 { "type": "integer", "minimum": 0 },
-                { "type": "string" }
+                { "type": "string", "const": "" }
               ],
               "description": "Minimum seconds a pod should be ready before considered available"
             },
@@ -129,14 +129,14 @@
             "revisionHistoryLimit": {
               "oneOf": [
                 { "type": "integer", "minimum": 0 },
-                { "type": "string" }
+                { "type": "string", "const": "" }
               ],
               "description": "Number of old DaemonSet revisions to retain"
             },
             "minReadySeconds": {
               "oneOf": [
                 { "type": "integer", "minimum": 0 },
-                { "type": "string" }
+                { "type": "string", "const": "" }
               ],
               "description": "Minimum seconds a pod should be ready before considered available"
             },
@@ -197,7 +197,7 @@
             "activeDeadlineSeconds": {
               "oneOf": [
                 { "type": "integer", "minimum": 0 },
-                { "type": "string" }
+                { "type": "string", "const": "" }
               ],
               "description": "Duration in seconds the Job may be active before termination"
             },
@@ -375,6 +375,7 @@
         "sidecars": { "type": "array" },
         "volumes": { "type": "array" },
         "volumeMounts": { "type": "array" },
+        "volumeDevices": { "type": "array" },
         "priorityClassName": {
           "type": "string",
           "description": "Priority class name for the pod"
@@ -472,6 +473,10 @@
           "default": "ClusterIP"
         },
         "annotations": { "type": "object" },
+        "externalName": {
+          "type": "string",
+          "description": "External DNS name when service.type is ExternalName"
+        },
         "clusterIP": {
           "type": "string",
           "description": "Cluster IP for the service (use 'None' for headless)"
@@ -509,6 +514,23 @@
         }
       }
     },
+    "tests": {
+      "type": "object",
+      "description": "Helm test configuration",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "image": { "type": "string", "default": "busybox:1.36" },
+        "servicePortName": { "type": "string" },
+        "command": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "args": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
     "ingress": {
       "type": "object",
       "description": "Ingress configuration",
@@ -523,11 +545,12 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["host"],
+            "required": ["host", "paths"],
             "properties": {
               "host": { "type": "string" },
               "paths": {
                 "type": "array",
+                "minItems": 1,
                 "items": {
                   "type": "object",
                   "required": ["path"],
@@ -610,6 +633,10 @@
           "type": "string",
           "enum": ["Filesystem", "Block"],
           "default": "Filesystem"
+        },
+        "devicePath": {
+          "type": "string",
+          "description": "Device path in container when volumeMode is Block"
         },
         "mountPath": {
           "type": "string",

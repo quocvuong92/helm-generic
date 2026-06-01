@@ -1,4 +1,5 @@
 {{- if eq (include "generic.workloadType" .) "daemonset" }}
+{{- include "generic.validatePodLabels" . }}
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
