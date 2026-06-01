@@ -1,0 +1,4 @@
+workload:
+  type: deployment
+  deployment:
+    revisionHistoryLimit: abc

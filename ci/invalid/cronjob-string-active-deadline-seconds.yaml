@@ -1,0 +1,6 @@
+workload:
+  type: cronjob
+  cronjob:
+    activeDeadlineSeconds: abc
+service:
+  enabled: false

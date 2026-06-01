@@ -27,14 +27,14 @@
             "revisionHistoryLimit": {
               "oneOf": [
                 { "type": "integer", "minimum": 0 },
-                { "type": "string" }
+                { "type": "string", "const": "" }
               ],
               "description": "Number of old ReplicaSets to retain"
             },
             "minReadySeconds": {
               "oneOf": [
                 { "type": "integer", "minimum": 0 },
-                { "type": "string" }
+                { "type": "string", "const": "" }
               ],
               "description": "Minimum seconds a pod should be ready before considered available"
             },
@@ -73,7 +73,7 @@
             "minReadySeconds": {
               "oneOf": [
                 { "type": "integer", "minimum": 0 },
-                { "type": "string" }
+                { "type": "string", "const": "" }
               ],
               "description": "Minimum seconds a pod should be ready before considered available"
             },
@@ -129,14 +129,14 @@
             "revisionHistoryLimit": {
               "oneOf": [
                 { "type": "integer", "minimum": 0 },
-                { "type": "string" }
+                { "type": "string", "const": "" }
               ],
               "description": "Number of old DaemonSet revisions to retain"
             },
             "minReadySeconds": {
               "oneOf": [
                 { "type": "integer", "minimum": 0 },
-                { "type": "string" }
+                { "type": "string", "const": "" }
               ],
               "description": "Minimum seconds a pod should be ready before considered available"
             },
@@ -197,7 +197,7 @@
             "activeDeadlineSeconds": {
               "oneOf": [
                 { "type": "integer", "minimum": 0 },
-                { "type": "string" }
+                { "type": "string", "const": "" }
               ],
               "description": "Duration in seconds the Job may be active before termination"
             },
